@@ -1,3 +1,8 @@
+""" 
+Calcolo dell'indice di massa corporea preciso
+Inserire i dati non con la virgola ma con il punto in quanto per il momento
+il programma non è in grado di interpretare e parsificare numeri con la virgola.
+"""
 import tkinter as tk
 
 root = tk.Tk()
