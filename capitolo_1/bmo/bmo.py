@@ -7,7 +7,7 @@ root.title("Calcolo indice della massa corporea")
 root.geometry('440x180')
 root.resizable(False, False)
 
-title = tk.Label(root, text='Calcolo Indice della massa corporea', font=('Arial 18 bold'))
+title = tk.Label(root, text='Calcolo Indice della massa corporea', font=('Arial 18 bold'), fg='yellow', bg='black')
 altezza_in_m_label = tk.Label(root, text='Altezza in metri:')
 altezza_in_m_inp = tk.Entry(root)
 peso_in_kg_label = tk.Label(root, text='Peso in Kg:')
