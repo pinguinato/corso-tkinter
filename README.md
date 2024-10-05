@@ -16,6 +16,6 @@ Se non presente occorro installarlo con il seguente comando:
 
             sudo apt-get install python3-tk
 
-Gli esercizi sono stati svolti con la versione Linux di Python **3.10.12**
+Gli esercizi sono stati svolti su Pop Os Linux con Python versione **3.10.12**.
 
-Gli esercizi in Windows sono stati svolit con la versione di Python (ancora da verificare).
+
