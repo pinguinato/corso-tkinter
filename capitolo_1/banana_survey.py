@@ -69,11 +69,15 @@ root.columnconfigure(1, weight=1)
 root.rowconfigure(99, weight=2)
 root.rowconfigure(100, weight=1)
 
+##################
+# CALLBACK #######
+##################
+def on_submit():
+    """Fai qualcosa"""
+    pass
 
-#title.pack()
-#name_label.pack()
-#name_inp.pack()
 
+submit_btn.configure(command=on_submit)
 
 ##################
 # EXECUTION ######
