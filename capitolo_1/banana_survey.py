@@ -73,8 +73,24 @@ root.rowconfigure(100, weight=1)
 # CALLBACK #######
 ##################
 def on_submit():
-    """Fai qualcosa"""
-    pass
+    name = name_inp.get()
+    number = num_inp.get()
+
+    selected_idx = color_inp.curselection()
+    
+    if selected_idx:
+        color = color_inp.get(selected_idx)
+    else:
+        color = ''
+    
+    haiku = banana_haiku_inp.get('1.0', tk.END)
+
+    message = (
+        f'Thanks for taking the survey, {name},\n'
+        f'Enjoy your {number} {color} bananas!'
+    )
+    output_line.configure(text=message)
+    print(haiku)
 
 
 submit_btn.configure(command=on_submit)
