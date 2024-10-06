@@ -48,8 +48,12 @@ eater_var = tk.BooleanVar()
 # ecco come passarla
 eater_inp = tk.Checkbutton(root, variable=eater_var, text='Check this box if you eat bananas')
 
+# esempio di varibile numerica per settare un valore numerico di default
+num_var = tk.IntVar(value=3)
+
 num_label = tk.Label(root, text='How many bananas do you eat per day?')
-num_inp = tk.Spinbox(root, from_=0, to=1000, increment=1)
+# ed ecco come passare num_var al widget per impostare il valore di default
+num_inp = tk.Spinbox(root, textvariable=num_var, from_=0, to=1000, increment=1)
 color_label = tk.Label(root, text='What is the best color for a banana?')
 color_inp = tk.Listbox(root, height=1)
 color_choices = ('Any', 'Green', 'Green-Yellow', 'Yellow', 'Brown-Spotted', 'Black')
