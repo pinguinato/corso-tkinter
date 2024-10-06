@@ -41,8 +41,13 @@ name_label = tk.Label(root, text='What is your name')
 # ecco come passare una varibile tkinter tipo testo
 name_inp = tk.Entry(root, textvariable=name_var)
 
-# check button widget
-eater_inp = tk.Checkbutton(root, text='Check this box if you eat bananas')
+print(name_var.get())
+
+# esempio di variabile booleana, indicata per una checkbox che è come un on/off
+eater_var = tk.BooleanVar()
+# ecco come passarla
+eater_inp = tk.Checkbutton(root, variable=eater_var, text='Check this box if you eat bananas')
+
 num_label = tk.Label(root, text='How many bananas do you eat per day?')
 num_inp = tk.Spinbox(root, from_=0, to=1000, increment=1)
 color_label = tk.Label(root, text='What is the best color for a banana?')
