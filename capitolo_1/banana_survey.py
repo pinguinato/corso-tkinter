@@ -66,6 +66,8 @@ submit_btn.grid(row=99)
 output_line.grid(row=100, columnspan=2, sticky='NSEW')
 # adjust widget size 
 root.columnconfigure(1, weight=1)
+banana_haiku_label.grid(row=8, sticky=tk.W)
+banana_haiku_inp.grid(row=9, columnspan=2, sticky='NSEW')
 root.rowconfigure(99, weight=2)
 root.rowconfigure(100, weight=1)
 

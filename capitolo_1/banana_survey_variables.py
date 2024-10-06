@@ -35,41 +35,41 @@ title = tk.Label(
 
 # varibile tkinter tipo testo esempio
 name_var = tk.StringVar(root)
-
 name_label = tk.Label(root, text='What is your name')
-
 # ecco come passare una varibile tkinter tipo testo
 name_inp = tk.Entry(root, textvariable=name_var)
-
-print(name_var.get())
-
+#print(name_var.get())
 # esempio di variabile booleana, indicata per una checkbox che è come un on/off
 eater_var = tk.BooleanVar()
 # ecco come passarla
 eater_inp = tk.Checkbutton(root, variable=eater_var, text='Check this box if you eat bananas')
-
 # esempio di varibile numerica per settare un valore numerico di default
 num_var = tk.IntVar(value=3)
-
 num_label = tk.Label(root, text='How many bananas do you eat per day?')
 # ed ecco come passare num_var al widget per impostare il valore di default
 num_inp = tk.Spinbox(root, textvariable=num_var, from_=0, to=1000, increment=1)
+color_var = tk.StringVar(value='Any')
 color_label = tk.Label(root, text='What is the best color for a banana?')
-color_inp = tk.Listbox(root, height=1)
+# Option menu widget example
 color_choices = ('Any', 'Green', 'Green-Yellow', 'Yellow', 'Brown-Spotted', 'Black')
-
-for choice in color_choices:
-    color_inp.insert(tk.END, choice)
-
+color_inp = tk.OptionMenu(root, color_var, *color_choices)
+# esempio di boolean var tkinter
+plantain_var = tk.BooleanVar()
 plantain_label = tk.Label(root, text='Do you eat plantains?')
 plantain_frame = tk.Frame(root)
-plantain_yes_inp = tk.Radiobutton(plantain_frame, text='Yes')
-plantain_no_inp = tk.Radiobutton(plantain_frame, text='Ewww, not')
+
+# come passare il valore boolean
+plantain_yes_inp = tk.Radiobutton(plantain_frame, text='Yes', value=True, variable=plantain_var)
+plantain_no_inp = tk.Radiobutton(plantain_frame, text='Ewww, not', value=False, variable=plantain_var)
 
 banana_haiku_label = tk.Label(root, text='Write a haiku about bananas')
 banana_haiku_inp = tk.Text(root, height=3)
 submit_btn = tk.Button(root, text='Submit Survey')
-output_line = tk.Label(root, text='', anchor='w', justify='left')
+
+
+
+output_var = tk.StringVar(value='')
+output_line = tk.Label(root, text=output_var, anchor='w', justify='left')
 
 
 ####################
@@ -87,6 +87,8 @@ plantain_yes_inp.pack(side='left', fill='x', ipadx=10, ipady=5)
 plantain_no_inp.pack(side='left', fill='x', ipadx=10, ipady=5)
 plantain_label.grid(row=6, columnspan=2, sticky=tk.W)
 plantain_frame.grid(row=7, columnspan=2, sticky=tk.W)
+banana_haiku_label.grid(row=8, sticky=tk.W)
+banana_haiku_inp.grid(row=9, columnspan=2, sticky='NSEW')
 submit_btn.grid(row=99)
 output_line.grid(row=100, columnspan=2, sticky='NSEW')
 # adjust widget size 
