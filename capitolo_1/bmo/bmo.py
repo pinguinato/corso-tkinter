@@ -30,7 +30,7 @@ output_line.grid(row=110, columnspan=2, sticky='NSEW')
 
 def on_submit():
     altezza_in_metri = float(altezza_in_m_inp.get())
-    peso_in_kg = int(peso_in_kg_inp.get())
+    peso_in_kg = float(peso_in_kg_inp.get())
     calcolo_bmi = float(peso_in_kg / (altezza_in_metri * 2))
 
     print("Risultato BMI: " , calcolo_bmi)
