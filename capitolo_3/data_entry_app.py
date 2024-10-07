@@ -25,8 +25,15 @@ root = tk.Tk()
 root.title('ABQ Data Entry Application')
 root.columnconfigure(0, weight=1)
 
+#########################
+# Heading     ###########
+#########################
 
+ttk.Label(root, text="ABQ Data Entry Application", font=("TkDefaultFont", 16)).grid()
 
+#########################
+# Data record form ######
+#########################
 
 
 
