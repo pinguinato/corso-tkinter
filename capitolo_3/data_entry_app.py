@@ -83,6 +83,18 @@ ttk.Label(r_info, text='Seed Sample').grid(row=2, column=2)
 ttk.Entry(r_info, textvariable=variables['Seed Sample']).grid(row=3, column=2, sticky=(tk.W + tk.E))
 
 
+#################################################
+# Data record form - Environment Data Section   #
+#################################################
+
+e_info = ttk.LabelFrame(drf, text="Environment Data")
+e_info.grid(sticky=(tk.W + tk.E))
+for i in range(3):
+    e_info.columnconfigure(i, weight=1)
+
+
+
+
 print(variables)
 
 # esecuzione
