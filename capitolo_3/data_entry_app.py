@@ -136,6 +136,21 @@ variables['Fruit'] = tk.IntVar()
 ttk.Label(p_info, text="Fruit").grid(row=0, column=2)
 ttk.Spinbox(p_info, textvariable=variables['Fruit'], from_=0, to=1000, increment=1).grid(row=1, column=2, sticky=(tk.W + tk.E))
 
+# Min Height
+variables['Min Height'] = tk.DoubleVar()
+ttk.Label(p_info, text="Min Height (cm)").grid(row=2, column=0)
+ttk.Spinbox(p_info, textvariable=variables['Min Height'], from_=0, to=1000, increment=0.01).grid(row=3, column=0, sticky=(tk.W + tk.E))
+
+# Max Height
+variables['Max Height'] = tk.DoubleVar()
+ttk.Label(p_info, text="Max Height (cm)").grid(row=2, column=1)
+ttk.Spinbox(p_info, textvariable=variables['Max Height'], from_=0, to=1000, increment=0.01).grid(row=3, column=1, sticky=(tk.W + tk.E))
+
+# Med Height
+variables['Med Height'] = tk.DoubleVar()
+ttk.Label(p_info, text="Median Height (cm)").grid(row=2, column=2)
+ttk.Spinbox(p_info, textvariable=variables['Med Height'], from_=0, to=1000, increment=0.01).grid(row=3, column=2, sticky=(tk.W + tk.E))
+
 #print(variables)
 
 # esecuzione
