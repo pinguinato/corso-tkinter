@@ -116,6 +116,26 @@ ttk.Checkbutton(e_info, variable=variables['Equipment Fault'], text='Equipment F
 # Data record form - Plant Data Section   #######
 #################################################
 
+p_info = ttk.LabelFrame(drf, text="Plant Data")
+p_info.grid(sticky=(tk.W + tk.E))
+for i in range(3):
+    p_info.columnconfigure(i, weight=1)
+
+# Plants
+variables['Plants'] = tk.IntVar()
+ttk.Label(p_info, text="Plants").grid(row=0, column=0)
+ttk.Spinbox(p_info, textvariable=variables['Plants'], from_=0, to=20, increment=1).grid(row=1, column=0, sticky=(tk.W + tk.E))
+
+# Blossoms
+variables['Blossoms'] = tk.IntVar()
+ttk.Label(p_info, text="Blossoms").grid(row=0, column=1)
+ttk.Spinbox(p_info, textvariable=variables['Blossoms'], from_=0, to=1000, increment=1).grid(row=1, column=1, sticky=(tk.W + tk.E))
+
+# Fruit
+variables['Fruit'] = tk.IntVar()
+ttk.Label(p_info, text="Fruit").grid(row=0, column=2)
+ttk.Spinbox(p_info, textvariable=variables['Fruit'], from_=0, to=1000, increment=1).grid(row=1, column=2, sticky=(tk.W + tk.E))
+
 #print(variables)
 
 # esecuzione
