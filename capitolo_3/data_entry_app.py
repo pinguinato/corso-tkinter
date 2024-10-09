@@ -92,10 +92,31 @@ e_info.grid(sticky=(tk.W + tk.E))
 for i in range(3):
     e_info.columnconfigure(i, weight=1)
 
+# humidity
+variables['Humidity'] = tk.DoubleVar()
+ttk.Label(e_info, text="Humidity (g/m)").grid(row=0, column=0)
+ttk.Spinbox(e_info, textvariable=variables['Humidity'], from_=0.5, to=52.0, increment=0.01).grid(row=1, column=0, sticky=(tk.W + tk.E))
+
+# light
+variables['Light'] = tk.DoubleVar()
+ttk.Label(e_info, text="Light (klx)").grid(row=0, column=1)
+ttk.Spinbox(e_info, textvariable=variables['Light'], from_=0, to=100, increment=0.01).grid(row=1, column=1, sticky=(tk.W + tk.E))
+
+# temperature
+variables['Temperature'] = tk.DoubleVar()
+ttk.Label(e_info, text="Temperature (C°)").grid(row=0, column=2)
+ttk.Spinbox(e_info, textvariable=variables['Temperature'], from_=4, to=40, increment=.01).grid(row=1, column=2, sticky=(tk.W + tk.E))
+
+# Equipment Fault
+variables['Equipment Fault'] = tk.DoubleVar(value=False)
+ttk.Checkbutton(e_info, variable=variables['Equipment Fault'], text='Equipment Fault').grid(row=2, column=0, sticky=tk.W, pady=5)
 
 
+#################################################
+# Data record form - Plant Data Section   #######
+#################################################
 
-print(variables)
+#print(variables)
 
 # esecuzione
 root.mainloop()
