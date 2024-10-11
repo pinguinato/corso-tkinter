@@ -180,12 +180,39 @@ def on_reset():
 # Save function
 def on_save():
     """ Called when save button is clicked """
+    global records_saved
+    datestring = datetime.today().strftime("%Y-%m-%d")
+    filename = f"abq_data_record_{datestring}.csv"
+    newfile = not Path(filename).exists()
 
+    data = dict()
+    fault = variables['Equipment Fault'].get()
+    for key, variable in variables.items():
+        if fault and key in ('Light', 'Humidity', 'Temperature'):
+            data[key] = ''
+        else:
+            try:
+                data[key] = variable.get()
+            except tk.TclError:
+                status_variable.set(f'Error in field: {key}. Data was not saved!')
+                return
+            
+        data['Notes'] = notes_inp.get('1.0', tk.END)
 
+        with open(filename, 'a', newline='') as fh:
+            csvwriter = csv.DictWriter(fh, fieldnames=data.keys())
+            if newfile:
+                csvwriter.writeheader()
+            csvwriter.writerow(data)
+    
+    records_saved += 1
+    status_variable.set(f"{records_saved} record saved this session")
+    on_reset()
 
 
 reset_button.configure(command=on_reset)
 save_button.configure(command=on_save)    
+on_reset()
 
 #print(variables)
 
