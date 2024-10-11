@@ -177,15 +177,14 @@ def on_reset():
 
     notes_inp.delete('1.0', tk.END)
 
-
-reset_button.configure(command=on_reset)
-
-
 # Save function
 def on_save():
     """ Called when save button is clicked """
 
 
+
+
+reset_button.configure(command=on_reset)
 save_button.configure(command=on_save)    
 
 #print(variables)
