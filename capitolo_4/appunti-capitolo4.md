@@ -104,8 +104,64 @@ Anche questi usano il decoratore, che si chiama **@staticmethod**.
 Questi metodi spesso vengono definiti per gestire delle funzioni di utilità all'interno di 
 una classe.
 
-### Magic Attributes
+### Magic Attributes & Methods
+
+Ci sono un sets di attributi/metodi in Python che tutte le classi possono usare, 
+questi vengono definiti **magici** in quanto sono accessibili con il doppio underscore, da qui 
+la definizione **dunder** methods/attributes (double underscore).
+
+Gli attributi magici di norma memorizzano informazioni tipo **metadata**, esempio:
+
+        __class__
+
+questo attributo si riferisce alla classe.
+
+        __str__
+
+questo invece definisce cosa succede quando operiamo con il metodo str().
+
+Oppure, stampare il nome di una classe:
+
+        class MyClass:
+            pass
+
+        print(MyClass.__name__)
+
+Ecc...
 
 ### Membri di una classe Public, Private e Protected
 
+- public: da intendersi che può essere letto o chiamato da elementi esterni ad una classe
+- protected: da intendersi che può essere chiamato dai soli membri della classe stessa e da sue sottoclassi
+- private: da intendersi che può venir chiamato soltanto da membri della classe stessa
+
+Python non fa distinzione tra pubblico/protetto/privato al momento, l'unico modo e 
+nominare variaibili e metodi in modo che si capisca se siano privati, protetti o pubblici, ad esempio:
+
+        __ripe_colors = ['yellow', 'black', 'red']
+
+        def _is_ripe():
+            return self.color in self.__ripe_colors
+
+        def can_eat():
+            ...
+
+__ripe_colors è un attributo privato, se tentiamo da un metodo pubblico di 
+accedervi Python lancia una eccezione **AttributeError** exception.
+
+_is_ripe() è un metodo protetto.
+
 ### Ereditarietà e sottoclassi
+
+Python ci permette di derivare una classe da un'altra classe in questo modo:
+
+        class Banana():
+            pass
+
+        class RedBanana(Banana):
+            pass
+
+Per riferirci ai metodi della superclasse possiamo usare **super()**.
+
+        def peel():
+            super().peel()
