@@ -17,6 +17,9 @@ import csv
 variables = dict()
 records_saved = 0
 
+EQUIPMENT_FAULT = "Equipment Fault"
+SEED_SAMPLE = "Seed Sample"
+
 #########################
 # Root Window ###########
 #########################
@@ -78,9 +81,9 @@ ttk.Label(r_info, text='Plot').grid(row=2, column=1)
 ttk.Combobox(r_info, textvariable=variables['Plot'], values=list(range(1, 21))).grid(row=3, column=1, sticky=(tk.W + tk.E))
 
 # Seed Sample
-variables['Seed Sample'] = tk.StringVar()
-ttk.Label(r_info, text='Seed Sample').grid(row=2, column=2)
-ttk.Entry(r_info, textvariable=variables['Seed Sample']).grid(row=3, column=2, sticky=(tk.W + tk.E))
+variables[SEED_SAMPLE] = tk.StringVar()
+ttk.Label(r_info, text=SEED_SAMPLE).grid(row=2, column=2)
+ttk.Entry(r_info, textvariable=variables[SEED_SAMPLE]).grid(row=3, column=2, sticky=(tk.W + tk.E))
 
 
 #################################################
@@ -108,8 +111,8 @@ ttk.Label(e_info, text="Temperature (C°)").grid(row=0, column=2)
 ttk.Spinbox(e_info, textvariable=variables['Temperature'], from_=4, to=40, increment=.01).grid(row=1, column=2, sticky=(tk.W + tk.E))
 
 # Equipment Fault
-variables['Equipment Fault'] = tk.DoubleVar(value=False)
-ttk.Checkbutton(e_info, variable=variables['Equipment Fault'], text='Equipment Fault').grid(row=2, column=0, sticky=tk.W, pady=5)
+variables[EQUIPMENT_FAULT] = tk.DoubleVar(value=False)
+ttk.Checkbutton(e_info, variable=variables[EQUIPMENT_FAULT], text=EQUIPMENT_FAULT).grid(row=2, column=0, sticky=tk.W, pady=5)
 
 
 #################################################
