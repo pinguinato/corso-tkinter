@@ -11,6 +11,7 @@ import tkinter as tk
 from tkinter import ttk, Radiobutton
 
 from mpmath.matrices.matrices import rowsep
+from sqlalchemy import column
 
 """
     SCOPO DELLA CLASSE `BoundText`:
@@ -288,6 +289,38 @@ class DataRecordForm(ttk.Frame):
 
         # Environment Data
         e_info = self._add_frame("Environment Data")
+
+        # ---------------------------------------------
+
+        # Humidity
+        LabelInput(
+            e_info, "Humidity (g/m)", input_class=ttk.Spinbox,
+            var=self._vars["Humidity"],
+            input_args={"from" : 0.5, "to" : 52.0, "increment" : .01}
+        ).grid(row=0, column=0)
+
+        # Light klx
+        LabelInput(
+            e_info, "Light (klx)", input_class=ttk.Spinbox,
+            var=self._vars["Light"],
+            input_args={"from": 0, "to": 100, "increment": .01}
+        ).grid(row=0, column=1)
+
+        # Temperature
+        LabelInput(
+            e_info, "Temperature (Celsius)", input_class=ttk.Spinbox,
+            var=self._vars["Temperature"],
+            input_args={"from": 4, "to": 40, "increment": .01}
+        ).grid(row=0, column=2)
+
+        # Equipment Fault
+        LabelInput(
+            e_info, "Equipment Fault", input_class=ttk.Checkbutton,
+            var=self._vars["Equipment Fault"]
+        ).grid(row=1, column=0, columnspan=3)
+
+
+
 
 
 
