@@ -362,8 +362,8 @@ class DataRecordForm(ttk.Frame):
 
         # Median Height
         LabelInput(
-            p_info, "Median Height (cm)", input_class=ttk.Spinbox,
-            var=self._vars["Median Height"],
+            p_info, "Med Height (cm)", input_class=ttk.Spinbox,
+            var=self._vars["Med Height"],
             input_args={"from_": 0, "to": 1000, "increment": .01}
         ).grid(row=1, column=2)
 
@@ -447,23 +447,19 @@ class DataRecordForm(ttk.Frame):
 
 
     def get(self):
-        """Recupera i dati da tutti i campi del form e li restituisce come dizionario.
-
-                 Questo metodo è il punto di contatto principale per ottenere lo stato
-                 corrente del form. Viene chiamato dalla logica di salvataggio per
-                 raccogliere i dati prima di scriverli su file.
-
-                 Implementa anche una logica di business specifica per il caso
-                 "Equipment Fault" e una validazione di base dei tipi di dato.
-
-                 Returns:
-                     dict: Un dizionario contenente i dati del form, con le chiavi
+        """
+        Recupera i dati da tutti i campi del form e li restituisce come dizionario.
+        Questo metodo è il punto di contatto principale per ottenere lo stato
+        corrente del form. Viene chiamato dalla logica di salvataggio per
+        raccogliere i dati prima di scriverli su file.
+        Implementa anche una logica di business specifica per il caso
+        'Equipment Fault' e una validazione di base dei tipi di dato.
+        Returns:
+            dict: Un dizionario contenente i dati del form, con le chiavi
                            che corrispondono alle etichette dei campi.
-
-                 Raises:
-                     ValueError: Se un campo contiene un valore non valido (es. testo
-                                 in un campo numerico), viene sollevata un'eccezione
-                                 con un messaggio di errore descrittivo.
+        Raises:
+            ValueError: Se un campo contiene un valore non valido (es. testo
+            in un campo numerico), viene sollevata un'eccezione con un messaggio di errore descrittivo
         """
         data = dict()
         fault = self._vars['Equipment Fault'].get()
@@ -479,3 +475,87 @@ class DataRecordForm(ttk.Frame):
 
         return data
 
+
+
+
+class Application(tk.Tk):
+    """Application root window"""
+
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+        self.title("ABQ Data Entry Application")
+        self.columnconfigure(0, weight=1)
+
+        # define a title Label for the Application
+        ttk.Label(
+            self, text="ABQ Data Entry Application", font=("TkDefaultFont", 16)
+        ).grid(row=0)
+
+        # insert instnace of Data Record Form
+        self.recordform = DataRecordForm(self)
+        self.recordform.grid(row=1, padx=10, sticky=(tk.W + tk.E))
+
+        # define a status bar
+        self.status = tk.StringVar()
+        ttk.Label(
+            self, textvariable=self.status
+        ).grid(sticky=(tk.W + tk.E), row=2, padx=10)
+
+        self._record_saved = 0
+
+
+    def _on_save(self):
+        """Gestisce l'evento di click sul pulsante "Save".
+
+        Questo metodo agisce come il "controllore" per l'operazione di salvataggio.
+        Orchestra l'interazione tra il form (`DataRecordForm`) e la logica di
+        scrittura su file, seguendo il principio della separazione delle competenze.
+
+        ANALISI TECNICA:
+        1.  **Recupero e Validazione**: Chiama il metodo `self.recordform.get()`
+            per recuperare i dati. La chiamata è racchiusa in un blocco `try...except`
+            per catturare i `ValueError` sollevati dal form in caso di dati
+            non validi (es. testo in un campo numerico).
+            - Se viene catturato un errore, il salvataggio viene interrotto,
+              e il messaggio di errore viene mostrato nella barra di stato.
+
+        2.  **Gestione del File**: Determina il nome del file CSV basandosi
+            sulla data corrente (es. `abq_data_record_2023-10-27.csv`).
+            Controlla se il file esiste già per decidere se scrivere o meno
+            la riga di intestazione (header).
+
+        3.  **Scrittura dei Dati**: Apre il file in modalità "append" (`'a'`) e
+            usa `csv.DictWriter` per scrivere i dati. Questo approccio è
+            robusto perché scrive i dati basandosi sui nomi delle colonne,
+            indipendentemente dal loro ordine.
+
+        4.  **Feedback e Reset**: Dopo un salvataggio riuscito, aggiorna la
+            barra di stato con il conteggio dei record salvati e chiama
+            `self.recordform.reset()` per preparare il form a un nuovo
+            inserimento.
+        """
+        datestring = datetime.today().strftime("%Y-%m-%d")
+        filename = "abq_data_record_{}.csv".format(datestring)
+        newfile = not Path(filename).exists()
+
+        try:
+            data = self.recordform.get()
+        except ValueError as e:
+            self.status.set(str(e))
+            return  # Interrompe l'esecuzione in caso di errore
+
+        with open(filename, 'a', newline='') as fh:
+            csvwriter = csv.DictWriter(fh, fieldnames=data.keys())
+            if newfile:
+                csvwriter.writeheader()
+            csvwriter.writerow(data)
+
+        self._record_saved += 1
+        self.status.set("{} records saved this session".format(self._record_saved))
+        self.recordform.reset()
+
+
+
+if __name__ == "__main__":
+    app = Application()
+    app.mainloop()
