@@ -10,6 +10,7 @@ import csv
 import tkinter as tk
 from tkinter import ttk
 
+from mpmath.matrices.matrices import rowsep
 
 """
     SCOPO DELLA CLASSE `BoundText`:
@@ -237,6 +238,42 @@ class DataRecordForm(ttk.Frame):
             'Med Height': tk.DoubleVar(),
             'Notes': tk.StringVar()
         }
+
+        # ---------------------------------------------
+
+        # Record Information
+        r_info = self._add_frame("Record Information")
+
+        #---------------------------------------------
+
+        # Date
+        LabelInput(
+            r_info, "Date", var=self._vars["Date"]
+        ).grid(row=0, column=0)
+
+        # Time
+        LabelInput(
+            r_info, "Time", input_class=ttk.Combobox,
+            var=self._vars["Time"],
+            input_args={"values": ['8:00', '12:00', '16:00', '20:00']}
+        ).grid(row=0, column=1)
+
+        # Technician
+        LabelInput(
+            r_info, "Technician", var=self._vars["Technician"]
+        ).grid(row=0, column=2)
+
+        # ---------------------------------------------
+
+
+
+
+
+
+
+
+
+
 
     def _add_frame(self, label: str, cols: int = 3) -> ttk.LabelFrame:
         """Crea e configura un contenitore LabelFrame per raggruppare i widget.
