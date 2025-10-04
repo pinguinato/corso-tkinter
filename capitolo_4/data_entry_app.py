@@ -296,21 +296,21 @@ class DataRecordForm(ttk.Frame):
         LabelInput(
             e_info, "Humidity (g/m)", input_class=ttk.Spinbox,
             var=self._vars["Humidity"],
-            input_args={"from" : 0.5, "to" : 52.0, "increment" : .01}
+            input_args={"from_" : 0.5, "to" : 52.0, "increment" : .01}
         ).grid(row=0, column=0)
 
         # Light klx
         LabelInput(
             e_info, "Light (klx)", input_class=ttk.Spinbox,
             var=self._vars["Light"],
-            input_args={"from": 0, "to": 100, "increment": .01}
+            input_args={"from_": 0, "to": 100, "increment": .01}
         ).grid(row=0, column=1)
 
         # Temperature
         LabelInput(
             e_info, "Temperature (Celsius)", input_class=ttk.Spinbox,
             var=self._vars["Temperature"],
-            input_args={"from": 4, "to": 40, "increment": .01}
+            input_args={"from_": 4, "to": 40, "increment": .01}
         ).grid(row=0, column=2)
 
         # Equipment Fault
@@ -319,12 +319,74 @@ class DataRecordForm(ttk.Frame):
             var=self._vars["Equipment Fault"]
         ).grid(row=1, column=0, columnspan=3)
 
+        # ---------------------------------------------
 
+        p_info = self._add_frame("Plant Data")
 
+        # ---------------------------------------------
 
+        # Plants
+        LabelInput(
+            p_info, "Plants", input_class=ttk.Spinbox,
+            var=self._vars["Plants"],
+            input_args={"from_": 0, "to": 20}
+        ).grid(row=0, column=0)
 
+        # Blossoms
+        LabelInput(
+            p_info, "Blossoms", input_class=ttk.Spinbox,
+            var=self._vars["Blossoms"],
+            input_args={"from_": 0, "to": 1000}
+        ).grid(row=0, column=1)
 
+        # Fruit
+        LabelInput(
+            p_info, "Fruit", input_class=ttk.Spinbox,
+            var=self._vars["Fruit"],
+            input_args={"from_": 0, "to": 1000}
+        ).grid(row=0, column=2)
 
+        # Min Height
+        LabelInput(
+            p_info, "Min Height (cm)", input_class=ttk.Spinbox,
+            var=self._vars["Min Height"],
+            input_args={"from_": 0, "to": 1000, "increment": .01}
+        ).grid(row=1, column=0)
+
+        # Max Height
+        LabelInput(
+            p_info, "Max Height (cm)", input_class=ttk.Spinbox,
+            var=self._vars["Max Height"],
+            input_args={"from_": 0, "to": 1000, "increment": .01}
+        ).grid(row=1, column=1)
+
+        # Median Height
+        LabelInput(
+            p_info, "Median Height (cm)", input_class=ttk.Spinbox,
+            var=self._vars["Median Height"],
+            input_args={"from_": 0, "to": 1000, "increment": .01}
+        ).grid(row=1, column=2)
+
+        # ---------------------------------------------
+
+        # Notes Section
+        LabelInput(
+            self, "Notes", input_class=BoundText,
+            var=self._vars["Notes"],
+            input_args={"width": 75, "height": 10}
+        ).grid(sticky=tk.W, row=3, column=0)
+
+        # ---------------------------------------------
+
+        # final button section
+        buttons = tk.Frame(self)
+        buttons.grid(sticky=tk.W + tk.E, row=4)
+        self.savebutton = ttk.Button(buttons, text="Save", command=self.master._on_save)
+        self.savebutton.pack(side=tk.RIGHT)
+        self.resetbutton = ttk.Button(buttons, text="Reset", command=self.reset)
+        self.resetbutton.pack(side=tk.RIGHT)
+
+        # ---------------------------------------------
 
 
     def _add_frame(self, label: str, cols: int = 3) -> ttk.LabelFrame:
