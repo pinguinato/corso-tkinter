@@ -416,3 +416,66 @@ class DataRecordForm(ttk.Frame):
             frame.columnconfigure(i, weight=1)
         return frame
 
+
+    def reset(self):
+        """Resetta tutti i campi del form al loro stato iniziale.
+
+         Questo metodo viene chiamato quando l'utente preme il pulsante "Reset".
+         Il suo compito è svuotare tutti i widget di input per preparare il form
+         a un nuovo inserimento di dati.
+
+         ANALISI TECNICA:
+         -   Scorre tutte le variabili di controllo di Tkinter contenute nel
+             dizionario `self._vars`.
+         -   Per ogni variabile, applica la logica di reset corretta in base al
+             suo tipo per evitare errori:
+             - `BooleanVar` (per i Checkbutton) viene impostato a `False`.
+             - `StringVar` (per Entry, Combobox di testo) viene impostato a una
+               stringa vuota `''`.
+             - `IntVar` e `DoubleVar` (per Spinbox, Combobox numerici) vengono
+               impostati a `0`. Questo è fondamentale per evitare un errore
+               `tk.TclError`, poiché queste variabili non accettano una stringa
+               vuota come valore.
+         """
+
+        for var in self._vars.values():
+            if isinstance(var, tk.BooleanVar):
+                var.set(False)
+            else:
+                var.set('')
+
+
+
+    def get(self):
+        """Recupera i dati da tutti i campi del form e li restituisce come dizionario.
+
+                 Questo metodo è il punto di contatto principale per ottenere lo stato
+                 corrente del form. Viene chiamato dalla logica di salvataggio per
+                 raccogliere i dati prima di scriverli su file.
+
+                 Implementa anche una logica di business specifica per il caso
+                 "Equipment Fault" e una validazione di base dei tipi di dato.
+
+                 Returns:
+                     dict: Un dizionario contenente i dati del form, con le chiavi
+                           che corrispondono alle etichette dei campi.
+
+                 Raises:
+                     ValueError: Se un campo contiene un valore non valido (es. testo
+                                 in un campo numerico), viene sollevata un'eccezione
+                                 con un messaggio di errore descrittivo.
+        """
+        data = dict()
+        fault = self._vars['Equipment Fault'].get()
+        for key, variable in self._vars.items():
+            if fault and key in ('Light', 'Humidity', 'Temperature'):
+                data[key] = ''
+            else:
+                try:
+                    data[key] = variable.get()
+                except tk.TclError:
+                    message = f'Erro in field: {key}. Data was not saved!'
+                    raise ValueError(message)
+
+        return data
+
