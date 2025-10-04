@@ -188,3 +188,80 @@ class LabelInput(tk.Frame):
     def grid(self, sticky=(tk.E + tk.W), **kwargs):
         """Override grid to add default sticky values"""
         super().grid(sticky=sticky, **kwargs)
+
+
+class DataRecordForm(ttk.Frame):
+    """Costruttore della classe DataRecordForm.
+
+             Questo metodo viene eseguito alla creazione di un'istanza della classe
+             e ha il compito fondamentale di inizializzare lo stato interno del form.
+
+             ANALISI TECNICA:
+             1.  `super().__init__(...)`: Chiama il costruttore della classe genitore
+                 (`ttk.Frame`), assicurando che il nostro form sia a tutti gli effetti
+                 un widget Frame di Tkinter, pronto per contenere altri widget.
+
+             2.  `self._vars = {...}`: Questa è la parte più importante. Crea un
+                 attributo di istanza privato (`_vars`) che funge da **modello dati
+                 centralizzato** per l'intero form.
+                 -   **Incapsulamento**: Sostituisce la vecchia variabile globale
+                     `variables`, incapsulando lo stato all'interno dell'oggetto.
+                     Questo è un principio chiave della programmazione a oggetti,
+                     che rende il codice più sicuro, pulito e manutenibile.
+                 -   **Struttura**: È un dizionario dove le chiavi sono i nomi
+                     logici dei campi (es. 'Date', 'Humidity') e i valori sono le
+                     variabili di controllo di Tkinter (`StringVar`, `IntVar`, etc.)
+                     che verranno collegate ai widget di input.
+                 -   **Fondamenta per la GUI**: Questo dizionario è la base su cui
+                     verrà costruita dinamicamente l'intera interfaccia grafica.
+    """
+
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+        self._vars = {
+            'Date': tk.StringVar(),
+            'Time': tk.StringVar(),
+            'Technician': tk.StringVar(),
+            'Lab': tk.StringVar(),
+            'Plot': tk.IntVar(),
+            'Seed Sample': tk.StringVar(),
+            'Humidity': tk.DoubleVar(),
+            'Light': tk.DoubleVar(),
+            'Temperature': tk.DoubleVar(),
+            'Equipment Fault': tk.BooleanVar(),
+            'Plants': tk.IntVar(),
+            'Blossoms': tk.IntVar(),
+            'Fruit': tk.IntVar(),
+            'Min Height': tk.DoubleVar(),
+            'Max Height': tk.DoubleVar(),
+            'Med Height': tk.DoubleVar(),
+            'Notes': tk.StringVar()
+        }
+
+    def _add_frame(self, label: str, cols: int = 3) -> ttk.LabelFrame:
+        """Crea e configura un contenitore LabelFrame per raggruppare i widget.
+
+        Questo è un metodo "helper" (di supporto) privato, progettato per
+        ridurre la duplicazione del codice nella costruzione dell'interfaccia.
+        Il suo compito è creare un `ttk.LabelFrame`, che è un contenitore
+        con un bordo e un'etichetta, ideale per raggruppare sezioni
+        logiche del form (es. "Record Information", "Environment Data").
+
+        Args:
+            label (str): Il testo da visualizzare come titolo del LabelFrame.
+            cols (int, optional): Il numero di colonne che il layout a griglia
+                all'interno del frame deve avere. Default a 3.
+
+        Returns:
+            ttk.LabelFrame: Il widget LabelFrame appena creato e configurato.
+        """
+        frame = ttk.LabelFrame(self, text=label)
+        frame.grid(sticky=tk.W + tk.E)
+
+        # Questa è la parte fondamentale per un layout responsive:
+        # Configura le colonne all'interno del frame affinché si espandano
+        # in modo uniforme quando la finestra viene ridimensionata.
+        for i in range(cols):
+            frame.columnconfigure(i, weight=1)
+        return frame
+
