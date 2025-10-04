@@ -8,7 +8,7 @@ from datetime import datetime
 from pathlib import Path
 import csv
 import tkinter as tk
-from tkinter import ttk
+from tkinter import ttk, Radiobutton
 
 from mpmath.matrices.matrices import rowsep
 
@@ -265,10 +265,29 @@ class DataRecordForm(ttk.Frame):
 
         # ---------------------------------------------
 
+        # Lab
+        LabelInput(
+            r_info, "Lab", input_class=ttk.Radiobutton,
+            var=self._vars["Lab"],
+            input_args={"values": ["A", "B", "C"]}
+        ).grid(row=1, column=0)
 
+        # Plot
+        LabelInput(
+            r_info, "Plot", input_class=ttk.Combobox,
+            var=self._vars["Plot"],
+            input_args={"values": list(range(1,21))}
+        ).grid(row=1, column=1)
 
+        #Seed Sample
+        LabelInput(
+            r_info, "Seed Sample", var=self._vars["Seed Sample"]
+        ).grid(row=1, column=2)
 
+        # ---------------------------------------------
 
+        # Environment Data
+        e_info = self._add_frame("Environment Data")
 
 
 
