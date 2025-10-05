@@ -20,8 +20,10 @@ root = tk.Tk()
 entry = tk.Entry(root)
 entry.grid()
 
+
 def alway_good():
     return True
+
 
 validate_ref = root.register(alway_good)
 
@@ -33,8 +35,10 @@ entry.configure(
 entry2 = tk.Entry(root)
 entry2.grid(pady=10)
 
+
 def no_t_for_me(proposed):
     return 't' not in proposed
+
 
 validate2_ref = root.register(no_t_for_me)
 entry2.configure(
