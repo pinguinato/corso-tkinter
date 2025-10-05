@@ -186,16 +186,19 @@ class LabelInput(tk.Frame):
 
         if input_class == ttk.Radiobutton:
             self.input = tk.Frame(self)
-            for v in input_args.pop('values', []):
+            # Configura le colonne del frame interno per dare spazio ai bottoni
+            values = input_args.pop('values', [])
+            for i, v in enumerate(values):
+                self.input.columnconfigure(i, weight=1)
                 # Passa la variabile esplicitamente a ogni Radiobutton
                 button = ttk.Radiobutton(self.input, value=v, text=v, variable=self.variable, **input_args)
-                button.pack(
-                    side=tk.LEFT, ipadx=10, ipady=2, expand=True, fill='x'
-                )
+                # Usa grid() invece di pack()
+                button.grid(row=0, column=i, padx=10, sticky='ew')
+            # Posiziona il frame contenitore dei radio button
+            self.input.grid(row=1, column=0, sticky=(tk.W + tk.E))
         else:
             self.input = input_class(self, **input_args)
             self.input.grid(row=1, column=0, sticky=(tk.W + tk.E))
-            self.columnconfigure(0, weight=1)
 
 
     def grid(self, sticky=(tk.E + tk.W), **kwargs):
