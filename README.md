@@ -49,3 +49,16 @@
  *   **Linux (Fedora/CentOS/RHEL)**: Usa `dnf` (o `yum` su versioni più vecchie).
      ```bash
      sudo dnf install python3-tkinter
+     
+## Data Entry Application
+  
+ Il file `data_entry_app.py` rappresenta il progetto centrale e il vero laboratorio di questo corso.
+  
+ Attraverso i vari capitoli, questo singolo file evolverà da un semplice script procedurale a un'applicazione GUI completa e robusta, costruita secondo i moderni principi della programmazione a oggetti.
+  
+ L'obiettivo è esplorare, passo dopo passo, le tecniche per creare un'applicazione Tkinter professionale, manutenibile e ricca di funzionalità, tra cui:
+  
+ *   Struttura a classi e creazione di componenti riutilizzabili.
+ *   Gestione avanzata del layout per interfacce responsive.
+ *   Validazione dei dati in tempo reale per una migliore esperienza utente.
+ *   Interazione con il file system per il salvataggio dei dati (CSV).
