@@ -34,31 +34,23 @@ Possiamo raggruppare le tecniche di validazione in quattro strategie principali:
 
 Tkinter offre un meccanismo di validazione integrato per i widget di input, basato principalmente su tre opzioni di configurazione:
 
--   `validate`: Specifica *quando* deve avvenire la validazione. I valori più comuni sono:
-    -   `'key'`: Valida a ogni pressione di un tasto. Ideale per la **prevenzione dell'errore**.
-    -   `'focusout'`: Valida quando l'utente lascia il campo. Ideale per il **feedback visivo**.
-    -   `'all'`: Valida in entrambe le situazioni.
+-   `validate`: Specifica *quando* deve avvenire la validazione. La scelta del valore è fondamentale per implementare la strategia corretta. I valori possibili sono:
+
+| Valore | Descrizione | Uso Tipico |
+| :--- | :--- | :--- |
+| `'none'` | Disabilita la validazione. | Default. |
+| `'key'` | Valida a ogni pressione (o rilascio) di un tasto. | **Prevenzione dell'errore** (input filtering). |
+| `'focusin'` | Valida quando il widget riceve il focus (viene selezionato). | Meno comune, utile per controlli all'ingresso. |
+| `'focusout'` | Valida quando il widget perde il focus (l'utente lascia il campo). | **Feedback visivo** (real-time validation). |
+| `'focus'` | Valida sia su `focusin` che su `focusout`. | Combinazione dei due eventi di focus. |
+| `'all'` | Valida su `key`, `focusin` e `focusout`. | La scelta più completa e flessibile. |
+
+> **Nota importante**: È possibile specificare un solo valore per `validate`. Tutti gli eventi attivati da quel valore (es. `key` e `focusout` per `'all'`) eseguiranno sempre la stessa funzione di validazione definita in `validatecommand`.
 
 -   `validatecommand`: Specifica la *funzione* (o metodo) da chiamare per eseguire la logica di validazione. Questa funzione deve restituire `True` se il dato è valido e `False` altrimenti.
 
 -   `invalidcommand`: Specifica la *funzione* da chiamare se la validazione fallisce (cioè se `validatecommand` restituisce `False`). È qui che tipicamente si implementa il **feedback visivo**, come cambiare il colore di un'etichetta.
 
 Integrando questo sistema nelle nostre classi personalizzate (`LabelInput`), possiamo creare un sistema di validazione potente, riutilizzabile e facile da gestire.
-
-### Argomento Validate
-
-**Validate**: specifica quando deve avvenire la validazione, i suoi possibili valori sono:
-- none
-- focusin (quando viene selezionatoi il campo)
-- focusout (quando l'utente lascia il campo)
-- focus (entrambi focusin e focusout)
-- key (l'utente preme un tasto della tastiera)
-- all (qualsiasi evento focusin, focusout e key)
-
-**Importante**: soltanto un argomento *validate* può essere specificato e tutti gli stessi eventi triggheranno la stessa validazione 
-specificata.
-
-### Argomento validatecommand
-
 
 
