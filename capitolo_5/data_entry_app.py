@@ -11,7 +11,9 @@ import tkinter as tk
 from tkinter import ttk, Radiobutton
 
 from mpmath.matrices.matrices import rowsep
+from pygments.styles.dracula import foreground
 from sqlalchemy import column
+from uri_template import validate
 
 """
     SCOPO DELLA CLASSE `BoundText`:
@@ -569,6 +571,193 @@ class Application(tk.Tk):
         self._record_saved += 1
         self.status.set("{} records saved this session".format(self._record_saved))
         self.recordform.reset()
+
+
+class ValidateMixin:
+    """Un "Mixin" che aggiunge una funzionalità di validazione completa a un widget.
+
+     Questa non è una classe pensata per essere usata da sola, ma per essere
+     "mescolata" (da cui il nome Mixin) con altre classi di widget (come
+     `ttk.Entry`, `ttk.Spinbox`) tramite ereditarietà multipla.
+
+     Il suo scopo è automatizzare completamente la configurazione del sistema
+     di validazione di Tkinter, lasciando alla classe figlia solo il compito
+     di definire la logica di validazione specifica.
+
+     ARCHITETTURA E FUNZIONAMENTO:
+     -----------------------------
+     1.  **`__init__`**: Il costruttore esegue tutta la configurazione:
+         -   `self.error`: Garantisce che il widget abbia sempre una `StringVar`
+             per i messaggi di errore.
+         -   `super().__init__`: Chiama il costruttore della classe successiva
+             nell'ordine di ereditarietà (es. `ttk.Entry`), assicurando che
+             il widget venga creato correttamente.
+         -   `self.register()`: Registra i metodi `_validate` e `_invalid`
+             (che devono essere implementati dalla classe figlia) per renderli
+             chiamabili da Tkinter.
+         -   `self.configure()`: "Accende" il sistema di validazione sul widget,
+             collegando gli eventi ai comandi registrati e specificando quali
+             dati passare tramite i codici di sostituzione (`%P`, `%s`, ecc.).
+
+     2.  **Metodi Segnaposto**: `_validate` e `_invalid` sono definiti qui
+         con una logica di default (restituisce sempre `True`, non fa nulla
+         in caso di errore). Questo previene errori se una classe figlia
+         dimentica di sovrascriverli.
+
+     ESEMPIO DI UTILIZZO:
+     --------------------
+     class ValidatedEntry(ValidateMixin, ttk.Entry):
+         def _validate(self, *args):
+             # ... logica di validazione specifica ...
+         def _invalid(self, *args):
+             # ... logica per gestire l'errore ...
+     """
+    def __init__(self, *args, error_var=None, **kwargs):
+        self.error = error_var or tk.StringVar()
+        super().__init__(*args, **kwargs)
+
+        vcmd = self.register(self._validate)
+        invcmd = self.register(self._invalid)
+
+        self.configure(
+            validate='all',
+            validatecommand=(vcmd, '%P', '%s', '%S', '%V', '%i', '%d'),
+            invalidcommand=(invcmd, '%P', '%s', '%S', '%V', '%i', '%d')
+        )
+
+
+    def _toggle_error(self, on=False):
+        """Attiva o disattiva il feedback visivo di errore sul widget.
+
+                 Questo è un metodo "helper" privato che centralizza la logica per
+                 cambiare l'aspetto del widget stesso (in questo caso, il colore del
+                 testo) per indicare uno stato di errore o uno stato normale.
+
+                 Viene chiamato dai metodi di validazione per fornire un feedback
+                 visivo immediato e inequivocabile direttamente sul campo errato.
+
+                 Args:
+                     on (bool, optional): Un flag booleano che determina lo stato.
+                         - Se `True`, il testo del widget viene colorato di rosso.
+                         - Se `False` (default), il testo del widget torna nero.
+                 """
+        self.configure(foreground=('red' if on else 'black'))
+
+
+    def _validate(self, proposed, current, char, event, index, action):
+        """Metodo "centralino" che orchestra il processo di validazione.
+
+            Questo è il metodo principale chiamato da Tkinter per ogni evento di
+            validazione. Non contiene la logica di validazione specifica, ma agisce
+            come un "dispatcher": determina il tipo di evento e delega il lavoro
+            ai metodi specializzati (`_key_validate` o `_focusout_validate`).
+
+            Questo approccio, basato sul "Principio di Separazione delle Competenze",
+            mantiene il Mixin pulito e permette alle classi figlie di sovrascrivere
+            solo la logica di cui hanno bisogno.
+
+            ANALISI TECNICA:
+            1.  **Reset dello Stato di Errore**: All'inizio di ogni chiamata, resetta
+                il messaggio di errore e il feedback visivo. Questo assicura che
+                gli errori non siano "persistenti" e che lo stato venga
+                rivalutato a ogni interazione.
+            2.  **Controllo dello Stato 'DISABLED'**: Come prima cosa, controlla se
+                il widget è disabilitato. In tal caso, la validazione viene saltata
+                restituendo `True`. È una pratica robusta per evitare validazioni
+                indesiderate.
+            3.  **Delega basata sull'Evento**:
+                - Se `event == 'focusout'`, delega la validazione al metodo
+                  `_focusout_validate`.
+                - Se `event == 'key'`, delega la validazione al metodo
+                  `_key_validate`, passandogli tutti gli argomenti necessari.
+            """
+        self.error.set('')
+        self._toggle_error()
+
+        # if widget is disabled don't validate
+        state = str(self.configure('state')[-1])
+        if state == tk.DISABLED:
+            return True
+
+        valid = True
+        if event == 'focusout':
+            valid = self._focusout_validate(proposed=proposed, event=event)
+        elif event == 'key':
+            valid = self._key_validate(
+                proposed=proposed,
+                current=current,
+                char=char,
+                event=event,
+                index=index,
+                action=action
+            )
+        return valid
+
+
+    def _focusout_validate(self, **kwargs):
+        """Metodo segnaposto per la validazione all'uscita dal campo (focus-out).
+
+                 Questo metodo è progettato per essere **sovrascritto** dalle classi
+                 figlie che utilizzano il `ValidateMixin`.
+
+                 Il suo scopo è contenere la logica di validazione che deve essere
+                 eseguita solo quando l'utente ha finito di interagire con il widget
+                 e sposta il focus altrove.
+
+                 Esempi di utilizzo nelle classi figlie:
+                 -   In un campo per date, controllerebbe che la data sia semanticamente
+                     valida (es. "2023-02-30" non è valido).
+                 -   In un campo obbligatorio, controllerebbe che il valore non sia vuoto.
+
+                 Args:
+                     **kwargs: Accetta qualsiasi argomento nominato per massima
+                               flessibilità, anche se nella sua forma base non li usa.
+
+                 Returns:
+                     bool: Per default restituisce `True`, significando che, se non
+                           sovrascritto, nessuna validazione specifica viene eseguita
+                           al focus-out.
+                 """
+        return True
+
+    def _key_validate(self, **kwargs):
+        """Metodo segnaposto per la validazione a ogni pressione di un tasto.
+
+                 Questo metodo è progettato per essere **sovrascritto** dalle classi
+                 figlie che utilizzano il `ValidateMixin`.
+
+                 Il suo scopo è contenere la logica di "Input Filtering", ovvero la
+                 validazione che viene eseguita in tempo reale mentre l'utente digita.
+                 È ideale per impedire fisicamente l'inserimento di caratteri non validi.
+
+                 Esempi di utilizzo nelle classi figlie:
+                 -   In un campo numerico, bloccherebbe l'inserimento di lettere.
+                 -   In un campo per date con formato fisso, permetterebbe solo cifre
+                     e trattini nelle posizioni corrette.
+
+                 Args:
+                     **kwargs: Accetta tutti gli argomenti di validazione (proposed,
+                               current, char, ecc.) come argomenti nominati, offrendo
+                               massima flessibilità alle classi figlie.
+
+                 Returns:
+                     bool: Per default restituisce `True`, significando che, se non
+                           sovrascritto, qualsiasi carattere digitato è considerato
+                           valido.
+                 """
+        return True
+
+
+
+
+
+
+
+
+
+
+
+
 
 
 
