@@ -15,6 +15,9 @@ from pygments.styles.dracula import foreground
 from sqlalchemy import column
 from uri_template import validate
 
+
+A_VALUE_IS_REQUIRED = 'A value is required'
+
 """
     SCOPO DELLA CLASSE `BoundText`:
     =============================
@@ -494,7 +497,7 @@ class DataRecordForm(ttk.Frame):
             ValueError: Se un campo contiene un valore non valido (es. testo
             in un campo numerico), viene sollevata un'eccezione con un messaggio di errore descrittivo
         """
-        data = dict()
+        data = {}
         fault = self._vars['Equipment Fault'].get()
         for key, variable in self._vars.items():
             if fault and key in ('Light', 'Humidity', 'Temperature'):
@@ -858,7 +861,7 @@ class RequiredEntry(ValidatedMixin, ttk.Entry):
         valid = True
         if not self.get():
             valid = False
-            self.error.set('A value is required')
+            self.error.set(A_VALUE_IS_REQUIRED)
         return valid
 
 
@@ -916,7 +919,7 @@ class DateEntry(ValidatedMixin, ttk.Entry):
         valid = True
 
         if not self.get():
-            self.error.set('A value is required')
+            self.error.set(A_VALUE_IS_REQUIRED)
             valid = False
         try:
             datetime.strptime(self.get(), '%Y-%m-%d')
@@ -984,7 +987,7 @@ class ValidatedCombobox(ValidatedMixin, ttk.Combobox):
         valid = True
         if not self.get():
             valid = False
-            self.error.set('A value is required')
+            self.error.set(A_VALUE_IS_REQUIRED)
         return valid
 
 
