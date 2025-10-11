@@ -53,4 +53,33 @@ Tkinter offre un meccanismo di validazione integrato per i widget di input, basa
 
 Integrando questo sistema nelle nostre classi personalizzate (`LabelInput`), possiamo creare un sistema di validazione potente, riutilizzabile e facile da gestire.
 
+Laboratorio:
+
+Nel laboratorio di questo capitolo, applicheremo i principi di validazione discussi per trasformare la nostra `DataEntryApplication` in un'applicazione robusta e a prova di errore.
+
+L'obiettivo è quello di incapsulare la logica di validazione in classi riutilizzabili, seguendo un approccio orientato agli oggetti.
+
+### Passaggi Chiave del Laboratorio:
+
+1.  **Creazione di un `ValidatedMixin`**:
+    - Svilupperemo una classe "Mixin" che automatizza la configurazione del sistema di validazione di Tkinter (`validate`, `validatecommand`, `invalidcommand`).
+    - Questa classe fungerà da base per tutti i nostri widget validati.
+
+2.  **Sviluppo di Widget Personalizzati e Auto-validanti**:
+    - Creeremo nuove classi che ereditano sia dal `ValidatedMixin` che da un widget `ttk` standard. Esempi includono:
+        - `RequiredEntry`: Per i campi di testo obbligatori.
+        - `DateEntry`: Per validare il formato e la logica di una data.
+        - `ValidatedSpinbox`: Per i campi numerici con limiti min/max e interdipendenze.
+        - `ValidatedCombobox`: Per i menu a tendina con autocompletamento e selezione obbligatoria.
+        - `ValidatedRadioGroup`: Per i gruppi di radio button che richiedono una selezione.
+    - All'interno di queste classi, implementeremo la logica di validazione specifica sovrascrivendo i metodi forniti dal Mixin.
+
+3.  **Integrazione nel Form Principale**:
+    - Sostituiremo i widget `ttk` standard nel `DataRecordForm` con le nostre nuove classi validate.
+    - Implementeremo un meccanismo (`get_errors`) per controllare tutti i campi prima del salvataggio, bloccando l'operazione in caso di errori e notificando l'utente.
+
+4.  **Miglioramento dell'Interfaccia Utente**:
+    - Aggiungeremo un feedback visivo (testo rosso, messaggi di errore) che guida l'utente alla correzione.
+    - Implementeremo la disabilitazione dinamica dei campi in base alle selezioni dell'utente (es. "Equipment Fault").
+
 
