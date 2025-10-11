@@ -14,6 +14,7 @@ from mpmath.matrices.matrices import rowsep
 from pygments.styles.dracula import foreground
 from sqlalchemy import column
 from uri_template import validate
+from decimal import Decimal, InvalidOperation
 
 
 A_VALUE_IS_REQUIRED = 'A value is required'
@@ -990,12 +991,109 @@ class ValidatedCombobox(ValidatedMixin, ttk.Combobox):
             self.error.set(A_VALUE_IS_REQUIRED)
         return valid
 
+"""
+    ####################################################################
+    ####################################################################
+"""
+
+class ValidatedSpinbox(ValidatedMixin, ttk.Spinbox):
+    """
+        Un widget ttk.Spinbox con validazione numerica avanzata.
+
+        Questa classe estende ttk.Spinbox per fornire una validazione robusta
+        sia durante la digitazione che al momento della perdita del focus. Utilizza
+        il tipo `Decimal` per gestire i numeri, garantendo un'alta precisione
+        ed evitando i comuni errori di arrotondamento dei float.
+
+        Funzionalità principali:
+        - __init__: Determina la precisione decimale richiesta dall'opzione 'increment'.
+        - _key_validate: Valida ogni carattere inserito per prevenire input
+          non validi in tempo reale (es. lettere, doppi decimali, etc.).
+        - _focusout_validate: Esegue un controllo finale quando l'utente lascia
+          il campo per assicurarsi che il valore rientri nei limiti min/max.
+    """
+    def __init__(self, *args, from_='-Infinity', to='Infinity', **kwargs):
+        super().__init__(*args, from_=from_, to=to, **kwargs)
+        # Converte l'incremento in un oggetto Decimal per calcolarne la precisione
+        increment = Decimal(str(kwargs.get('increment', '1.0')))
+        # L'esponente del Decimal normalizzato ci dà il numero di cifre decimali
+        self.precision = increment.normalize().as_tuple().exponent
+
+    def _key_validate(self, char, index, current, proposed, action, **kwargs):
+        """
+                Valida l'input dell'utente durante la digitazione in tempo reale.
+
+                Questo metodo previene l'inserimento di caratteri che renderebbero
+                il numero non valido. Controlla:
+                - Che il carattere sia una cifra, un punto o un segno meno.
+                - Che il segno meno appaia solo all'inizio e solo se i negativi sono permessi.
+                - Che ci sia al massimo un punto decimale e solo se i decimali sono permessi.
+                - Che il numero di cifre decimali non superi la precisione definita.
+                - Che il valore non superi il limite massimo.
+        """
+        # L'azione '0' è una cancellazione, sempre permessa
+        if action == '0':
+            return True
+        valid = True
+        min_val = self.cget('from')
+        max_val = self.cget('to')
+        no_negative = min_val >= 0
+        no_decimal = self.precision >= 0
+
+        # Controlli sui singoli caratteri
+        if any([
+            (char not in '-1234567890.'),
+            (char == '-' and (no_negative or index != '0')),
+            (char == '.' and (no_decimal or '.' in current))
+        ]):
+            return False
+
+        # Permette stati intermedi come '-' o '.' da soli
+        if proposed in '-.':
+            return True
+
+        proposed = Decimal(proposed)
+        proposed_precision = proposed.as_tuple().exponent
+
+        if any([
+            (proposed > max_val),
+            (proposed_precision < self.precision) # Precisione errata (troppi decimali)
+        ]):
+            return False
+
+        return valid
 
 
+    def _focusout_validate(self, **kwargs):
+        """
+                Esegue la validazione finale quando il widget perde il focus.
 
+                Questo metodo controlla la validità complessiva del valore inserito:
+                1. Verifica che il testo sia un numero valido.
+                2. Controlla che il valore non sia inferiore al minimo consentito.
+                3. Controlla che il valore non sia superiore al massimo consentito.
+                Imposta un messaggio di errore specifico per ogni tipo di fallimento.
+        """
+        valid = True
+        value = self.get()
+        min_val = self.cget('from')
+        max_val = self.cget('to')
 
+        try:
+            d_value = Decimal(value)
+        except InvalidOperation:
+            self.error.set(f'Invalid number string: {value}')
+            return False
 
+        if d_value < min_val:
+            self.error.set(f'Value is too low: (min {min_val})')
+            valid = False
 
+        if d_value > max_val:
+            self.error.set(f'Value is too high: (max {max_val})')
+            valid = False
+
+        return valid
 
 
 
