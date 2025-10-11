@@ -748,6 +748,63 @@ class ValidateMixin:
         return True
 
 
+    def _invalid(self, proposed, current, char, event, index, action):
+        """
+            Gestore centrale per gli eventi di validazione.
+            Questo metodo viene chiamato quando l'input nel widget non è valido.
+            In base al tipo di evento ('focusout' o 'key'), delega la gestione
+            al metodo specifico corrispondente.
+        """
+        if event == 'focusout':
+            self._focusout_invalid(event=event)
+        elif event == 'key':
+            self._key_invalid(
+                proposed=proposed,
+                current=current,
+                char=char,
+                event=event,
+                index=index,
+                action=action
+            )
+
+    def _focusout_invalid(self, **kwargs):
+        """
+            Gestisce l'input non valido quando il widget perde il focus.
+            Quando l'utente si sposta su un altro campo e il valore inserito
+            non è valido, questo metodo viene invocato per mostrare un feedback
+            visivo di errore (ad esempio, cambiando il colore del bordo).
+        """
+        self._toggle_error(True)
+
+    def _key_invalid(self, **kwargs):
+        """
+            Gestisce l'input non valido durante la digitazione (evento 'key').
+            Per impostazione predefinita, questo metodo non fa nulla, ma può essere
+            sovrascritto nelle sottoclassi per implementare una logica specifica,
+            come impedire l'inserimento di caratteri non validi in tempo reale.
+        """
+        pass
+
+    def trigger_focus_validation(self):
+        """
+            Attiva manualmente la validazione del widget come se avesse perso il focus.
+
+            Questo metodo è utile per forzare il controllo di validità di un campo,
+            ad esempio quando si preme un pulsante "Salva" e si vuole verificare
+            che tutti i campi siano compilati correttamente prima di procedere.
+
+            Simula un evento 'focusout', controlla se il contenuto attuale è valido
+            e, in caso negativo, attiva il feedback visivo di errore.
+
+            Restituisce:
+                bool: True se il contenuto del widget è valido, altrimenti False.
+        """
+        valid = self._validate('', '', '', 'focusout', '', '')
+        if not valid:
+            self._focusout_invalid(event='focusout')
+        return valid
+
+
 
 
 
