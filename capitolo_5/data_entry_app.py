@@ -209,9 +209,16 @@ class LabelInput(tk.Frame):
             self.input = input_class(self, **input_args)
             self.input.grid(row=1, column=0, sticky=(tk.W + tk.E))
 
+        # disable var, disabling a field
         if disable_var:
             self.disable_var = disable_var
             self.disable_var.trace_add('write', self._check_disable)
+
+        # displaying errors
+        self.error = getattr(self.input, 'error', tk.StringVar())
+        ttk.Label(self, textvariable=self.error, **label_args).grid(
+            row=2, column=0, sticky=(tk.W + tk.E)
+        )
 
 
     def grid(self, sticky=(tk.E + tk.W), **kwargs):
@@ -219,15 +226,43 @@ class LabelInput(tk.Frame):
         super().grid(sticky=sticky, **kwargs)
 
 
+
     def _check_disable(self, *_):
+        """Callback per abilitare/disabilitare dinamicamente il widget di input.
+
+                 Questo metodo viene eseguito automaticamente ogni volta che la variabile
+                 `self.disable_var` (se fornita durante l'inizializzazione) viene modificata.
+                 Il suo scopo è creare un'interazione dinamica nel form, dove lo stato
+                 di un widget (es. un Checkbutton) controlla lo stato di un altro.
+
+                 Args:
+                     *_: Argomenti posizionali passati dal `trace` di Tkinter, non usati qui.
+
+                 ANALISI TECNICA:
+                 1.  **Controllo di Sicurezza**: Verifica che `disable_var` esista prima
+                     di procedere, per evitare errori se il widget non è stato configurato
+                     per essere disabilitabile.
+                 2.  **Logica di Disabilitazione** (se `disable_var` è `True`):
+                     -   Imposta lo stato del widget di input (`self.input`) su `DISABLED`,
+                         rendendolo non modificabile e visivamente "grigio".
+                     -   Svuota la variabile dati del widget (`self.variable.set('')`)
+                         perché un campo disabilitato non dovrebbe contenere un valore.
+                     -   Svuota la variabile di errore (`self.error.set('')`) per
+                         nascondere eventuali messaggi di validazione precedenti.
+                 3.  **Logica di Abilitazione** (se `disable_var` è `False`):
+                     -   Riporta lo stato del widget di input a `NORMAL`, rendendolo
+                         nuovamente modificabile dall'utente.
+        """
         if not hasattr(self, 'disable_var'):
             return
 
         if self.disable_var.get():
             self.input.configure(state=tk.DISABLED)
             self.variable.set('')
+            self.error.set('')
         else:
             self.input.configure(state=tk.NORMAL)
+
 
 
 
