@@ -1,5 +1,0 @@
-Date,Time,Technician,Lab,Plot,Seed Sample,Humidity,Light,Temperature,Equipment Fault,Plants,Blossoms,Fruit,Min Height,Max Height,Med Height,Notes
-2021-12-12,20:00,Roberto Gianotto,,10,test,0.6,0.01,4.0,False,1,1,1,0.01,0.01,0.01,
-2021-12-13,16:00,Stefania,,4,test,0.5,0.01,4.05,False,5,5,1,0.01,0.01,0.01,Aggiunta di alcune note
-2023-10-21,16:00,Roberto Gianotto,B,7,seed sample,0.5,0.01,4.0,False,1,2,2,0.01,0.01,0.01,Test do alcune note
-2025-10-04,8:00,Stefania Vicentini,C,10,test,0.52,0.03,4.04,False,1,1,3,0.02,0.03,0.04,Prova misurazione delle piante
