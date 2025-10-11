@@ -547,6 +547,14 @@ class DataRecordForm(ttk.Frame):
             else:
                 var.set('')
 
+        """
+            Queste righe permettono di inserire in automatico la data ad ogni reset
+            e posizionarsi con il focus sul campo Time direttamente
+        """
+        current_date = datetime.today().strftime('%Y-%m-%d')
+        self._vars['Date'].set(current_date)
+        self._vars['Time'].label_widget.input.focus()
+
 
 
     def get(self):
