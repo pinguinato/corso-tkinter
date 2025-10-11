@@ -284,7 +284,7 @@ class DataRecordForm(ttk.Frame):
 
         # Date
         LabelInput(
-            r_info, "Date", var=self._vars["Date"]
+            r_info, "Date", var=self._vars["Date"], input_class=DateEntry
         ).grid(row=0, column=0)
 
         # Time
@@ -898,7 +898,7 @@ class DateEntry(ValidatedMixin, ttk.Entry):
 
         if action == '0':
             valid = True
-        elif index in ('0', '1', '2,', '3', '5', '6', '8', '9'):
+        elif index in ('0', '1', '2', '3', '5', '6', '8', '9'):
             valid = char.isdigit()
         elif index in ('4', '7'):
             valid = char == '-'
