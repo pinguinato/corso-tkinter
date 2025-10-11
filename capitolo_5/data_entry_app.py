@@ -95,6 +95,14 @@ class BoundText(tk.Text):
             self.edit_modified(False)
 
 """
+    ####################################################################
+    ####################################################################
+"""
+
+
+
+
+"""
     SCOPO DELLA CLASSE `LabelInput`:
     ==============================
     Questa classe è un "compound widget" (widget composto) avanzato, progettata
@@ -206,6 +214,13 @@ class LabelInput(tk.Frame):
     def grid(self, sticky=(tk.E + tk.W), **kwargs):
         """Override grid to add default sticky values"""
         super().grid(sticky=sticky, **kwargs)
+
+
+"""
+    ####################################################################
+    ####################################################################
+"""
+
 
 
 class DataRecordForm(ttk.Frame):
@@ -495,6 +510,11 @@ class DataRecordForm(ttk.Frame):
 
 
 
+"""
+    ####################################################################
+    ####################################################################
+"""
+
 
 class Application(tk.Tk):
     """Application root window"""
@@ -571,6 +591,15 @@ class Application(tk.Tk):
         self._record_saved += 1
         self.status.set("{} records saved this session".format(self._record_saved))
         self.recordform.reset()
+
+
+"""
+    ####################################################################
+    ####################################################################
+    # CLASSI DELLA VALIDAZIONE #########################################
+    ####################################################################
+    ####################################################################
+"""
 
 
 class ValidatedMixin:
@@ -805,13 +834,10 @@ class ValidatedMixin:
         return valid
 
 
-
-
-
-
-
-
-
+"""
+    ####################################################################
+    ####################################################################
+"""
 
 class RequiredEntry(ValidatedMixin, ttk.Entry):
     """
@@ -836,7 +862,10 @@ class RequiredEntry(ValidatedMixin, ttk.Entry):
         return valid
 
 
-
+"""
+    ####################################################################
+    ####################################################################
+"""
 
 class DateEntry(ValidatedMixin, ttk.Entry):
     """
@@ -894,6 +923,68 @@ class DateEntry(ValidatedMixin, ttk.Entry):
         except ValueError:
             self.error.set('Invalid date')
             valid = False
+        return valid
+
+"""
+    ####################################################################
+    ####################################################################
+"""
+
+class ValidatedCombobox(ValidatedMixin, ttk.Combobox):
+    """
+        Un widget ttk.Combobox con validazione e autocompletamento.
+
+        Questa classe estende ttk.Combobox per aggiungere due funzionalità:
+        1. Validazione in tempo reale: durante la digitazione, il testo inserito
+           viene confrontato con l'elenco di valori disponibili. Se il testo
+           non corrisponde all'inizio di nessuna opzione, l'input viene bloccato.
+        2. Autocompletamento: se il testo digitato corrisponde in modo univoco
+           all'inizio di una sola opzione, il campo viene automaticamente
+           completato con tale opzione.
+        3. Campo obbligatorio: la validazione al 'focus-out' garantisce che
+           un valore sia stato selezionato.
+    """
+    def _key_validate(self, proposed, action, **kwargs):
+        """
+                Valida l'input durante la digitazione e gestisce l'autocompletamento.
+
+                Questo metodo viene chiamato a ogni modifica del testo:
+                - Se l'utente sta cancellando ('action' == '0'), l'azione è permessa.
+                - Filtra l'elenco di opzioni per trovare quelle che iniziano con
+                  il testo proposto (ignorando maiuscole/minuscole).
+                - Se non ci sono corrispondenze, l'input non è valido e viene bloccato.
+                - Se c'è una sola corrispondenza, il campo viene autocompletato e
+                  la modifica originale viene annullata (return False) per evitare
+                  testo duplicato o errato.
+        """
+        valid = True
+
+        if action == '0':
+            self.get('')
+            return True
+
+        values = self.cget('values')
+        matching = [
+            x for x in values
+            if x.lower().startswith(proposed.lower())
+        ]
+        if len(matching) == 0:
+            valid = False
+        elif len(matching) == 1:
+            self.set(matching[0])
+            self.icursor(tk.END)
+            valid = False
+
+        return valid
+
+    def _focusout_validate(self, **kwargs):
+        """
+            Valida il campo quando perde il focus, assicurandosi che non sia vuoto.
+        """
+        valid = True
+        if not self.get():
+            valid = False
+            self.error.set('A value is required')
         return valid
 
 
