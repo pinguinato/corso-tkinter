@@ -838,6 +838,66 @@ class RequiredEntry(ValidatedMixin, ttk.Entry):
 
 
 
+class DateEntry(ValidatedMixin, ttk.Entry):
+    """
+        Un widget ttk.Entry per l'inserimento di date nel formato AAAA-MM-GG.
+
+        Questa classe garantisce che l'utente possa inserire solo date valide,
+        fornendo due livelli di validazione:
+        1. Validazione in tempo reale (`_key_validate`): controlla ogni carattere
+           digitato per conformarsi alla struttura AAAA-MM-GG.
+        2. Validazione al 'focus-out' (`_focusout_validate`): controlla la validità
+           complessiva della data (es. che non sia '2023-02-30') quando l'utente
+           lascia il campo.
+    """
+    def _key_validate(self, action, index, char, **kwargs):
+        """
+                Valida l'input dell'utente durante la digitazione.
+
+                Questo metodo viene chiamato a ogni pressione di un tasto e permette
+                solo l'inserimento di caratteri che corrispondono al formato AAAA-MM-GG.
+                - Consente solo cifre nelle posizioni di anno, mese e giorno.
+                - Consente solo il trattino '-' nelle posizioni dei separatori.
+                - Blocca qualsiasi altro carattere o un numero eccessivo di caratteri.
+                - L'azione '0' corrisponde a una cancellazione, che è sempre permessa.
+        """
+        valid = True
+
+        if action == '0':
+            valid = True
+        elif index in ('0', '1', '2,', '3', '5', '6', '8', '9'):
+            valid = char.isdigit()
+        elif index in ('4', '7'):
+            valid = char == '-'
+        else:
+            valid = False
+        return valid
+
+    def _focusout_validate(self, event):
+        """
+                Valida il contenuto del campo quando perde il focus.
+
+                Questo metodo esegue un controllo completo sulla data inserita:
+                1. Verifica che il campo non sia vuoto.
+                2. Tenta di convertire la stringa in un oggetto `datetime` per
+                   assicurarsi che la data sia logicamente valida (es. il giorno
+                   esiste per quel mese e anno).
+                Imposta un messaggio di errore appropriato se la validazione fallisce.
+        """
+        valid = True
+
+        if not self.get():
+            self.error.set('A value is required')
+            valid = False
+        try:
+            datetime.strptime(self.get(), '%Y-%m-%d')
+        except ValueError:
+            self.error.set('Invalid date')
+            valid = False
+        return valid
+
+
+
 
 
 
