@@ -1095,6 +1095,68 @@ class ValidatedSpinbox(ValidatedMixin, ttk.Spinbox):
 
         return valid
 
+"""
+    ####################################################################
+    ####################################################################
+"""
+
+class ValidatedRadioGroup(ttk.Frame):
+    """
+        Un widget composito che raggruppa dei Radiobutton e ne valida la selezione.
+
+        Questa classe agisce come un contenitore (un ttk.Frame) per un insieme di
+        widget ttk.Radiobutton, garantendo che l'utente effettui una selezione.
+        Se l'utente lascia il gruppo senza aver selezionato un'opzione, viene
+        mostrato un messaggio di errore.
+    """
+    def __init__(self, *args, variable=None, error_var=None, values=None, button_args=None, **kwargs):
+        """
+                Inizializza il gruppo di Radiobutton.
+
+                Args:
+                    *args, **kwargs: Argomenti standard per il widget ttk.Frame.
+                    variable (tk.Variable, optional): La variabile Tkinter da associare
+                        al gruppo. Se non fornita, viene creata una nuova tk.StringVar.
+                    error_var (tk.StringVar, optional): La StringVar in cui scrivere
+                        eventuali messaggi di errore. Se non fornita, ne viene creata una.
+                    values (list, optional): Una lista di stringhe, ognuna delle quali
+                        rappresenta il valore e il testo di un Radiobutton.
+                    button_args (dict, optional): Un dizionario di argomenti da passare
+                        a ogni singolo Radiobutton creato (es. per lo stile).
+        """
+        super().__init__(*args, **kwargs)
+        # Inizializza le variabili, creandole se non vengono fornite
+        self.variable = variable or tk.StringVar()
+        self.error = error_var or tk.StringVar()
+        self.values = values or []
+        self.button_args = button_args or {}
+
+        # Crea e impagina un Radiobutton per ogni valore nella lista
+        for v in self.values:
+            button = ttk.Radiobutton(
+                self, value=v, text=v, variable=self.variable, **self.button_args
+            )
+            button.pack(
+                side=tk.LEFT, ipadx=10, ipady=2, expand=True, fill='x'
+            )
+
+        # Associa l'evento di perdita del focus alla funzione di validazione
+        self.bind('<FocusOut>', self.trigger_focusout_validation)
+
+    def trigger_focusout_validation(self, *_):
+        """
+                Esegue la validazione quando il widget perde il focus.
+
+                Questo metodo viene chiamato dall'evento bind. Pulisce l'errore
+                precedente e controlla se la variabile associata ha un valore.
+                Se la variabile è vuota (nessun pulsante selezionato), imposta
+                un messaggio di errore.
+        """
+        self.error.set('')
+        if not self.variable.get():
+            self.error.set(A_VALUE_IS_REQUIRED)
+
+
 
 
 
