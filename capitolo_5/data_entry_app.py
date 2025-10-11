@@ -168,7 +168,7 @@ class LabelInput(tk.Frame):
 
     def __init__(
             self, parent, label, var, input_class=ttk.Entry,
-            input_args=None, label_args=None, **kwargs
+            input_args=None, label_args=None, disable_var=None, **kwargs
     ):
         super().__init__(parent, **kwargs)
         input_args = input_args or {}
@@ -209,10 +209,25 @@ class LabelInput(tk.Frame):
             self.input = input_class(self, **input_args)
             self.input.grid(row=1, column=0, sticky=(tk.W + tk.E))
 
+        if disable_var:
+            self.disable_var = disable_var
+            self.disable_var.trace_add('write', self._check_disable)
+
 
     def grid(self, sticky=(tk.E + tk.W), **kwargs):
         """Override grid to add default sticky values"""
         super().grid(sticky=sticky, **kwargs)
+
+
+    def _check_disable(self, *_):
+        if not hasattr(self, 'disable_var'):
+            return
+
+        if self.disable_var.get():
+            self.input.configure(state=tk.DISABLED)
+            self.variable.set('')
+        else:
+            self.input.configure(state=tk.NORMAL)
 
 
 
@@ -323,21 +338,24 @@ class DataRecordForm(ttk.Frame):
         LabelInput(
             e_info, "Humidity (g/m)", input_class=ValidatedSpinbox,
             var=self._vars["Humidity"],
-            input_args={"from_" : 0.5, "to" : 52.0, "increment" : .01}
+            input_args={"from_" : 0.5, "to" : 52.0, "increment" : .01},
+            disable_var=self._vars['Equipment Fault']
         ).grid(row=0, column=0)
 
         # Light klx
         LabelInput(
             e_info, "Light (klx)", input_class=ValidatedSpinbox,
             var=self._vars["Light"],
-            input_args={"from_": 0, "to": 100, "increment": .01}
+            input_args={"from_": 0, "to": 100, "increment": .01},
+            disable_var=self._vars['Equipment Fault']
         ).grid(row=0, column=1)
 
         # Temperature
         LabelInput(
             e_info, "Temperature (Celsius)", input_class=ValidatedSpinbox,
             var=self._vars["Temperature"],
-            input_args={"from_": 4, "to": 40, "increment": .01}
+            input_args={"from_": 4, "to": 40, "increment": .01},
+            disable_var=self._vars['Equipment Fault']
         ).grid(row=0, column=2)
 
         # Equipment Fault
