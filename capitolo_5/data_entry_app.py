@@ -579,6 +579,48 @@ class DataRecordForm(ttk.Frame):
         return data
 
 
+    def get_errors(self):
+        """Forza una validazione completa su tutti i campi e restituisce gli errori.
+
+         Questo metodo è cruciale per la validazione pre-salvataggio. Scorre
+         tutti i widget del form, forza l'esecuzione della loro validazione
+         "on focus-out" (anche se l'utente non ha lasciato il campo) e
+         raccoglie tutti i messaggi di errore attivi in un dizionario.
+
+         Returns:
+             dict: Un dizionario dove le chiavi sono i nomi dei campi con errori
+                   e i valori sono i rispettivi messaggi di errore.
+                   Restituisce un dizionario vuoto se non ci sono errori.
+
+         ANALISI TECNICA:
+         1.  Iterazione: Scorre il dizionario `self._vars` per analizzare
+             ogni campo del form.
+         2.  Accesso ai Widget: Usa il riferimento `var.label_widget` per
+             risalire dalla variabile di controllo al widget `LabelInput` e
+             da lì al widget di input vero e proprio (`inp`) e alla sua
+             variabile di errore (`error`).
+         3.  Validazione Forzata: La parte più importante. `hasattr(...)`
+             controlla se il widget di input ha un metodo `trigger_focusout_validation`.
+             Se sì, lo chiama. Questo simula un evento "focus-out", forzando
+             la validazione di regole come "campo obbligatorio" anche se
+             l'utente è ancora posizionato su quel campo.
+         4.  Raccolta degli Errori: Dopo la validazione forzata, controlla
+             se la variabile di errore del widget contiene un messaggio. In caso
+             affermativo, lo aggiunge al dizionario `errors`.
+         """
+        errors = {}
+        for key, var in self._vars.items():
+            inp = var.label_widget.input
+            error = var.label_widget.error
+
+            if hasattr(inp, 'trigger_focusout_validation'):
+                inp.trigger_focusout_validation()
+            if error.get():
+                errors[key] = error.get()
+
+        return errors
+
+
 
 
 class Application(tk.Tk):
@@ -610,33 +652,47 @@ class Application(tk.Tk):
     def _on_save(self):
         """Gestisce l'evento di click sul pulsante "Save".
 
-        Questo metodo agisce come il "controllore" per l'operazione di salvataggio.
-        Orchestra l'interazione tra il form (`DataRecordForm`) e la logica di
-        scrittura su file, seguendo il principio della separazione delle competenze.
+         Questo metodo agisce come il "controllore" per l'operazione di salvataggio.
+         Orchestra l'interazione tra il form (`DataRecordForm`) e la logica di
+         scrittura su file, seguendo il principio della separazione delle competenze.
 
-        ANALISI TECNICA:
-        1.  **Recupero e Validazione**: Chiama il metodo `self.recordform.get()`
-            per recuperare i dati. La chiamata è racchiusa in un blocco `try...except`
-            per catturare i `ValueError` sollevati dal form in caso di dati
-            non validi (es. testo in un campo numerico).
-            - Se viene catturato un errore, il salvataggio viene interrotto,
-              e il messaggio di errore viene mostrato nella barra di stato.
+         ANALISI TECNICA:
+         1.  **Validazione Esplicita pre-salvataggio**: Come prima cosa, chiama
+             `self.recordform.get_errors()` per forzare una validazione su tutti
+             i campi. Se vengono trovati errori (es. campi obbligatori vuoti),
+             il salvataggio viene bloccato e la barra di stato viene aggiornata
+             con l'elenco dei campi errati.
 
-        2.  **Gestione del File**: Determina il nome del file CSV basandosi
-            sulla data corrente (es. `abq_data_record_2023-10-27.csv`).
-            Controlla se il file esiste già per decidere se scrivere o meno
-            la riga di intestazione (header).
+         2.  **Recupero e Validazione Tipi**: Chiama il metodo `self.recordform.get()`
+             per recuperare i dati. La chiamata è racchiusa in un blocco `try...except`
+             per catturare i `ValueError` sollevati in caso di dati non compatibili
+             con il tipo di variabile (es. testo in un campo numerico).
 
-        3.  **Scrittura dei Dati**: Apre il file in modalità "append" (`'a'`) e
-            usa `csv.DictWriter` per scrivere i dati. Questo approccio è
-            robusto perché scrive i dati basandosi sui nomi delle colonne,
-            indipendentemente dal loro ordine.
+         3.  **Gestione del File**: Determina il nome del file CSV basandosi
+             sulla data corrente (es. `abq_data_record_2023-10-27.csv`).
+             Controlla se il file esiste già per decidere se scrivere o meno
+             la riga di intestazione (header).
 
-        4.  **Feedback e Reset**: Dopo un salvataggio riuscito, aggiorna la
-            barra di stato con il conteggio dei record salvati e chiama
-            `self.recordform.reset()` per preparare il form a un nuovo
-            inserimento.
+         4.  **Scrittura dei Dati**: Apre il file in modalità "append" (`'a'`) e
+             usa `csv.DictWriter` per scrivere i dati. Questo approccio è
+             robusto perché scrive i dati basandosi sui nomi delle colonne,
+             indipendentemente dal loro ordine.
+
+         5.  **Feedback e Reset**: Dopo un salvataggio riuscito, aggiorna la
+             barra di stato con il conteggio dei record salvati e chiama
+             `self.recordform.reset()` per preparare il form a un nuovo
+             inserimento.
+         """
+
         """
+            In caso di errori nei dati del form non ti faccio salvare e visualizzo un messaggio in basso.
+        """
+        errors = self.recordform.get_errors()
+        if errors:
+            self.status.set("Cannot save, error in fields: {}".format(', '.join(errors.keys())))
+            return
+
+
         datestring = datetime.today().strftime("%Y-%m-%d")
         filename = "abq_data_record_{}.csv".format(datestring)
         newfile = not Path(filename).exists()
