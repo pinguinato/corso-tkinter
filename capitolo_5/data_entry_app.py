@@ -289,35 +289,35 @@ class DataRecordForm(ttk.Frame):
 
         # Time
         LabelInput(
-            r_info, "Time", input_class=ttk.Combobox,
+            r_info, "Time", input_class=ValidatedCombobox,
             var=self._vars["Time"],
             input_args={"values": ['8:00', '12:00', '16:00', '20:00']}
         ).grid(row=0, column=1)
 
         # Technician
         LabelInput(
-            r_info, "Technician", var=self._vars["Technician"]
+            r_info, "Technician", var=self._vars["Technician"], input_class=RequiredEntry
         ).grid(row=0, column=2)
 
         # ---------------------------------------------
 
         # Lab
         LabelInput(
-            r_info, "Lab", input_class=ttk.Radiobutton,
+            r_info, "Lab", input_class=ValidatedRadioGroup,
             var=self._vars["Lab"],
             input_args={"values": ["A", "B", "C"]}
         ).grid(row=1, column=0)
 
         # Plot
         LabelInput(
-            r_info, "Plot", input_class=ttk.Combobox,
+            r_info, "Plot", input_class=ValidatedCombobox,
             var=self._vars["Plot"],
             input_args={"values": list(range(1,21))}
         ).grid(row=1, column=1)
 
         #Seed Sample
         LabelInput(
-            r_info, "Seed Sample", var=self._vars["Seed Sample"]
+            r_info, "Seed Sample", var=self._vars["Seed Sample"], input_class=RequiredEntry
         ).grid(row=1, column=2)
 
         # ---------------------------------------------
@@ -329,21 +329,21 @@ class DataRecordForm(ttk.Frame):
 
         # Humidity
         LabelInput(
-            e_info, "Humidity (g/m)", input_class=ttk.Spinbox,
+            e_info, "Humidity (g/m)", input_class=ValidatedSpinbox,
             var=self._vars["Humidity"],
             input_args={"from_" : 0.5, "to" : 52.0, "increment" : .01}
         ).grid(row=0, column=0)
 
         # Light klx
         LabelInput(
-            e_info, "Light (klx)", input_class=ttk.Spinbox,
+            e_info, "Light (klx)", input_class=ValidatedSpinbox,
             var=self._vars["Light"],
             input_args={"from_": 0, "to": 100, "increment": .01}
         ).grid(row=0, column=1)
 
         # Temperature
         LabelInput(
-            e_info, "Temperature (Celsius)", input_class=ttk.Spinbox,
+            e_info, "Temperature (Celsius)", input_class=ValidatedSpinbox,
             var=self._vars["Temperature"],
             input_args={"from_": 4, "to": 40, "increment": .01}
         ).grid(row=0, column=2)
@@ -362,21 +362,21 @@ class DataRecordForm(ttk.Frame):
 
         # Plants
         LabelInput(
-            p_info, "Plants", input_class=ttk.Spinbox,
+            p_info, "Plants", input_class=ValidatedSpinbox,
             var=self._vars["Plants"],
             input_args={"from_": 0, "to": 20}
         ).grid(row=0, column=0)
 
         # Blossoms
         LabelInput(
-            p_info, "Blossoms", input_class=ttk.Spinbox,
+            p_info, "Blossoms", input_class=ValidatedSpinbox,
             var=self._vars["Blossoms"],
             input_args={"from_": 0, "to": 1000}
         ).grid(row=0, column=1)
 
         # Fruit
         LabelInput(
-            p_info, "Fruit", input_class=ttk.Spinbox,
+            p_info, "Fruit", input_class=ValidatedSpinbox,
             var=self._vars["Fruit"],
             input_args={"from_": 0, "to": 1000}
         ).grid(row=0, column=2)
