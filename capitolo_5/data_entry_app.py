@@ -11,7 +11,6 @@ import tkinter as tk
 from tkinter import ttk, Radiobutton
 
 from mpmath.matrices.matrices import rowsep
-from pygments.styles.dracula import foreground
 from sqlalchemy import column
 from uri_template import validate
 from decimal import Decimal, InvalidOperation
@@ -98,10 +97,6 @@ class BoundText(tk.Text):
             self._variable.set(content)
             self.edit_modified(False)
 
-"""
-    ####################################################################
-    ####################################################################
-"""
 
 
 
@@ -220,10 +215,7 @@ class LabelInput(tk.Frame):
         super().grid(sticky=sticky, **kwargs)
 
 
-"""
-    ####################################################################
-    ####################################################################
-"""
+
 
 
 
@@ -381,25 +373,46 @@ class DataRecordForm(ttk.Frame):
             input_args={"from_": 0, "to": 1000}
         ).grid(row=0, column=2)
 
+        min_height_var = tk.DoubleVar(value='-infinity')
+        max_height_var = tk.DoubleVar(value='infinity')
+
         # Min Height
         LabelInput(
-            p_info, "Min Height (cm)", input_class=ttk.Spinbox,
+            p_info, "Min Height (cm)", input_class=ValidatedSpinbox,
             var=self._vars["Min Height"],
-            input_args={"from_": 0, "to": 1000, "increment": .01}
+            input_args={
+                "from_": 0,
+                "to": 1000,
+                "increment": .01,
+                "max_var": max_height_var,
+                "focus_update_var": min_height_var
+            }
         ).grid(row=1, column=0)
 
         # Max Height
         LabelInput(
-            p_info, "Max Height (cm)", input_class=ttk.Spinbox,
+            p_info, "Max Height (cm)", input_class=ValidatedSpinbox,
             var=self._vars["Max Height"],
-            input_args={"from_": 0, "to": 1000, "increment": .01}
+            input_args={
+                "from_": 0,
+                "to": 1000,
+                "increment": .01,
+                "min_var": min_height_var,
+                "focus_update_var": max_height_var
+            }
         ).grid(row=1, column=1)
 
         # Median Height
         LabelInput(
-            p_info, "Med Height (cm)", input_class=ttk.Spinbox,
+            p_info, "Med Height (cm)", input_class=ValidatedSpinbox,
             var=self._vars["Med Height"],
-            input_args={"from_": 0, "to": 1000, "increment": .01}
+            input_args={
+                "from_": 0,
+                "to": 1000,
+                "increment": .01,
+                "min_var": min_height_var,
+                "max_var": max_height_var
+            }
         ).grid(row=1, column=2)
 
         # ---------------------------------------------
@@ -513,11 +526,6 @@ class DataRecordForm(ttk.Frame):
         return data
 
 
-
-"""
-    ####################################################################
-    ####################################################################
-"""
 
 
 class Application(tk.Tk):
@@ -838,10 +846,7 @@ class ValidatedMixin:
         return valid
 
 
-"""
-    ####################################################################
-    ####################################################################
-"""
+
 
 class RequiredEntry(ValidatedMixin, ttk.Entry):
     """
@@ -854,7 +859,7 @@ class RequiredEntry(ValidatedMixin, ttk.Entry):
         e mostra un messaggio di errore se l'utente lascia il campo vuoto e
         sposta il focus altrove.
     """
-    def _focusout_validate(self, event):
+    def _focusout_validate(self, **kwargs):
         """
                 Esegue la validazione quando il widget perde il focus.
                 Controlla se il campo è vuoto.
@@ -866,10 +871,6 @@ class RequiredEntry(ValidatedMixin, ttk.Entry):
         return valid
 
 
-"""
-    ####################################################################
-    ####################################################################
-"""
 
 class DateEntry(ValidatedMixin, ttk.Entry):
     """
@@ -906,7 +907,7 @@ class DateEntry(ValidatedMixin, ttk.Entry):
             valid = False
         return valid
 
-    def _focusout_validate(self, event):
+    def _focusout_validate(self, **kwargs):
         """
                 Valida il contenuto del campo quando perde il focus.
 
@@ -929,10 +930,7 @@ class DateEntry(ValidatedMixin, ttk.Entry):
             valid = False
         return valid
 
-"""
-    ####################################################################
-    ####################################################################
-"""
+
 
 class ValidatedCombobox(ValidatedMixin, ttk.Combobox):
     """
@@ -991,10 +989,7 @@ class ValidatedCombobox(ValidatedMixin, ttk.Combobox):
             self.error.set(A_VALUE_IS_REQUIRED)
         return valid
 
-"""
-    ####################################################################
-    ####################################################################
-"""
+
 
 class ValidatedSpinbox(ValidatedMixin, ttk.Spinbox):
     """
@@ -1012,12 +1007,176 @@ class ValidatedSpinbox(ValidatedMixin, ttk.Spinbox):
         - _focusout_validate: Esegue un controllo finale quando l'utente lascia
           il campo per assicurarsi che il valore rientri nei limiti min/max.
     """
-    def __init__(self, *args, from_='-Infinity', to='Infinity', **kwargs):
+    def __init__(
+            self, *args, min_var=None, max_var=None, focus_update_var=None,
+                 from_='-Infinity', to='Infinity', **kwargs):
+        """
+            Inizializza lo Spinbox e imposta i binding dinamici.
+
+            Questo costruttore estende il comportamento di un normale Spinbox
+            aggiungendo funzionalità avanzate per la gestione dinamica dei limiti
+            e per la notifica di aggiornamenti.
+
+            Args:
+                *args, **kwargs: Argomenti standard per il widget ttk.Spinbox.
+                min_var (tk.Variable, optional): Una variabile Tkinter il cui valore
+                    determina dinamicamente il limite minimo dello Spinbox.
+                max_var (tk.Variable, optional): Una variabile Tkinter il cui valore
+                    determina dinamicamente il limite massimo dello Spinbox.
+                focus_update_var (tk.Variable, optional): Una variabile Tkinter che
+                    viene aggiornata quando lo Spinbox perde il focus, per notificare
+                    altre parti dell'applicazione.
+                from_ (str or float): Il limite minimo iniziale.
+                to (str or float): Il limite massimo iniziale.
+
+            ANALISI TECNICA:
+            1.  **Calcolo della Precisione**: Analizza il valore di 'increment' per
+                determinare il numero di cifre decimali consentite, usando il tipo
+                `Decimal` per garantire precisione.
+            2.  **Gestione della Variabile Interna**: Se non viene fornita una
+                `textvariable`, ne crea una (`tk.DoubleVar`) per rendere il widget
+                autonomo.
+            3.  **Binding dei Limiti Dinamici**:
+                - Se `min_var` è fornito, imposta un "trace" su di esso. Ogni volta
+                  che `min_var` cambia, il metodo `_set_minimum` viene chiamato per
+                  aggiornare il limite inferiore ('from') dello Spinbox.
+                - Lo stesso avviene per `max_var` e il limite superiore ('to').
+            4.  **Notifica su Focus-Out**: Se `focus_update_var` è fornito, lega
+                l'evento `<FocusOut>` a un metodo che aggiornerà questa variabile,
+                permettendo ad altri widget (es. un grafico) di reagire quando
+                l'utente ha finito di modificare il valore.
+        """
         super().__init__(*args, from_=from_, to=to, **kwargs)
         # Converte l'incremento in un oggetto Decimal per calcolarne la precisione
         increment = Decimal(str(kwargs.get('increment', '1.0')))
         # L'esponente del Decimal normalizzato ci dà il numero di cifre decimali
         self.precision = increment.normalize().as_tuple().exponent
+        self.variable = kwargs.get('textvariable')
+
+        if not self.variable:
+            self.variable = tk.DoubleVar()
+            self.configure(textvariable=self.variable)
+
+        if min_var:
+            self.min_var =min_var
+            self.min_var.trace_add('write', self._set_minimum)
+
+        if max_var:
+            self.max_var =max_var
+            self.max_var.trace_add('write', self._set_maximum)
+
+        self.focus_update_var = focus_update_var
+        self.bind('<FocusOut>', self._set_focus_update_var)
+
+
+    def _set_focus_update_var(self, event):
+        """
+            Aggiorna la variabile di notifica esterna quando il widget perde il focus.
+
+            Questo metodo è il gestore dell'evento `<FocusOut>` e agisce come un
+            meccanismo di notifica. Il suo scopo è comunicare ad altre parti
+            dell'applicazione che l'utente ha terminato di modificare il valore
+            e che tale valore è valido.
+
+            ANALISI TECNICA:
+            1.  Recupera il valore corrente dal widget.
+            2.  Esegue un doppio controllo:
+                a) Verifica che una `focus_update_var` sia stata effettivamente
+                   fornita durante l'inizializzazione.
+                b) Verifica che non ci siano errori di validazione attivi
+                   controllando che la variabile `self.error` sia vuota.
+            3.  Solo se entrambe le condizioni sono vere, aggiorna la
+                `focus_update_var` con il valore del widget.
+
+            Questo previene aggiornamenti inutili o basati su dati non validi,
+            ed è ideale per innescare azioni dipendenti (es. ridisegnare un grafico)
+            solo quando il dato è stabile e corretto.
+        """
+        value = self.get()
+        if self.focus_update_var and not self.error.get():
+            self.focus_update_var.set(value)
+
+
+
+    def _set_minimum(self, *_):
+        """
+            Callback per aggiornare dinamicamente il limite minimo dello Spinbox.
+
+            Questo metodo viene eseguito automaticamente ogni volta che la variabile
+            `self.min_var` (se fornita) viene modificata. Il suo scopo è applicare
+            il nuovo limite minimo e ri-validare immediatamente il valore corrente
+            del widget rispetto a questo nuovo limite.
+
+            ANALISI TECNICA:
+            1.  **Salva Stato Corrente**: Memorizza il valore attuale presente nel
+                widget prima di apportare qualsiasi modifica.
+            2.  **Aggiorna Limite**: Tenta di leggere il nuovo minimo da `min_var`
+                e lo applica alla configurazione `from_` dello Spinbox. Il blocco
+                `try...except` gestisce con robustezza eventuali valori non validi
+                (es. stringhe vuote) in `min_var`.
+            3.  **Ripristina e Ri-valuta**: Dopo aver cambiato il limite, il valore
+                nel widget potrebbe essere stato alterato da Tkinter. Le righe
+                successive forzano un ripristino del valore originale e,
+                fondamentalmente, attivano una validazione completa tramite
+                `trigger_focusout_validation()`.
+            4.  **Effetto Finale**: Se il valore corrente diventa non valido a causa
+                del nuovo limite (es. il valore è 5 e il nuovo minimo è 10),
+                la ri-validazione forzata farà apparire il messaggio di errore.
+        """
+        current = self.get()
+
+        try:
+            new_min = self.min_var.get()
+            self.config(from_=new_min)
+        except (tk.TclError, ValueError):
+            pass
+
+        if not current:
+            self.delete(0, tk.END)
+        else:
+            self.variable.set(current)
+        self.trigger_focusout_validation()
+
+
+    def _set_maximum(self, *_):
+        """
+            Callback per aggiornare dinamicamente il limite massimo dello Spinbox.
+
+            Questo metodo viene eseguito automaticamente ogni volta che la variabile
+            `self.max_var` (se fornita) viene modificata. Il suo scopo è applicare
+            il nuovo limite massimo e ri-validare immediatamente il valore corrente
+            del widget rispetto a questo nuovo limite.
+
+            ANALISI TECNICA:
+            1.  **Salva Stato Corrente**: Memorizza il valore attuale presente nel
+                widget prima di apportare qualsiasi modifica.
+            2.  **Aggiorna Limite**: Tenta di leggere il nuovo massimo da `max_var`
+                e lo applica alla configurazione `to` dello Spinbox. Il blocco
+                `try...except` gestisce con robustezza eventuali valori non validi
+                in `max_var`.
+            3.  **Ripristina e Ri-valuta**: Dopo aver cambiato il limite, il valore
+                nel widget potrebbe essere stato alterato da Tkinter. Le righe
+                successive forzano un ripristino del valore originale e,
+                fondamentalmente, attivano una validazione completa tramite
+                `trigger_focusout_validation()`.
+            4.  **Effetto Finale**: Se il valore corrente diventa non valido a causa
+                del nuovo limite (es. il valore è 15 e il nuovo massimo è 10),
+                la ri-validazione forzata farà apparire il messaggio di errore.
+        """
+        current = self.get()
+
+        try:
+            new_max = self.max_var.get()
+            self.config(to=new_max)
+        except (tk.TclError, ValueError):
+            pass
+
+        if not current:
+            self.delete(0, tk.END)
+        else:
+            self.variable.set(current)
+        self.trigger_focusout_validation()
+
 
     def _key_validate(self, char, index, current, proposed, action, **kwargs):
         """
@@ -1095,10 +1254,20 @@ class ValidatedSpinbox(ValidatedMixin, ttk.Spinbox):
 
         return valid
 
-"""
-    ####################################################################
-    ####################################################################
-"""
+
+    def trigger_focusout_validation(self, *_):
+        """
+                Esegue la validazione quando il widget perde il focus.
+
+                Questo metodo viene chiamato dall'evento bind. Pulisce l'errore
+                precedente e controlla se la variabile associata ha un valore.
+                Se la variabile è vuota (nessun pulsante selezionato), imposta
+                un messaggio di errore.
+        """
+        self.error.set('')
+        if not self.variable.get():
+            self.error.set(A_VALUE_IS_REQUIRED)
+
 
 class ValidatedRadioGroup(ttk.Frame):
     """
