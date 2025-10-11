@@ -187,12 +187,12 @@ class LabelInput(tk.Frame):
             self.label = ttk.Label(self, text=label, **label_args)
             self.label.grid(row=0, column=0, sticky=(tk.W + tk.E))
 
-        # Assegna la variabile al widget di input
+        # # Assegna la variabile al widget di input
         if input_class == ttk.Radiobutton:
             # I Radiobutton non usano 'textvariable', ma 'variable' passata a ogni bottone.
             # La gestione è fatta nel ciclo qui sotto.
             pass
-        elif input_class in (ttk.Checkbutton, ttk.Button):
+        elif input_class in (ttk.Checkbutton, ttk.Button, ValidatedRadioGroup):
             input_args['variable'] = self.variable
         else:
             # Per Entry, Combobox, Spinbox, etc.
