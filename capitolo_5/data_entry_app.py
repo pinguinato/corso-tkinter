@@ -573,7 +573,7 @@ class Application(tk.Tk):
         self.recordform.reset()
 
 
-class ValidateMixin:
+class ValidatedMixin:
     """Un "Mixin" che aggiunge una funzionalità di validazione completa a un widget.
 
      Questa non è una classe pensata per essere usata da sola, ma per essere
@@ -805,6 +805,35 @@ class ValidateMixin:
         return valid
 
 
+
+
+
+
+
+
+
+
+class RequiredEntry(ValidatedMixin, ttk.Entry):
+    """
+        Un widget ttk.Entry che richiede l'inserimento di un valore.
+
+        Questa classe estende un normale campo di input (ttk.Entry) aggiungendo
+        una regola di validazione specifica: il campo non può essere lasciato vuoto.
+
+        Eredita da `ValidatedMixin` per integrare il meccanismo di validazione
+        e mostra un messaggio di errore se l'utente lascia il campo vuoto e
+        sposta il focus altrove.
+    """
+    def _focusout_validate(self, event):
+        """
+                Esegue la validazione quando il widget perde il focus.
+                Controlla se il campo è vuoto.
+        """
+        valid = True
+        if not self.get():
+            valid = False
+            self.error.set('A value is required')
+        return valid
 
 
 
