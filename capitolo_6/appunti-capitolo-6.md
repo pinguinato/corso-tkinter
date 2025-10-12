@@ -49,4 +49,10 @@
  
  ### Prossimi Passi: Refactoring del Progetto
  
- Nel laboratorio di questo capitolo, applicheremo questi concetti per riorganizzare la nostra `data_entry_app.py` in una struttura multi-file, separando le responsabilità:
+ Nel laboratorio di questo capitolo, applicheremo questi concetti per riorganizzare la nostra `data_entry_app.py` in una struttura multi-file, separando le responsabilità. 
+ Non esiste una regola fissa da seguire per l'organizzazione di un prgetto in Tkinter, ma possiamo seguire delle convenzioni.
+ 
+### Python Package
+
+I nomi dei package e dei moduli in Python si devono scrivere in minuscolo e i nomi seprati dal carattere underscore.
+
