@@ -1,4 +1,5 @@
 class Application:
 
-    def mainloop(self):
+    @staticmethod
+    def mainloop():
         print("Application Class")
