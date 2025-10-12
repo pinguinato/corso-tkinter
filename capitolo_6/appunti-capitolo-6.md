@@ -52,7 +52,41 @@
  Nel laboratorio di questo capitolo, applicheremo questi concetti per riorganizzare la nostra `data_entry_app.py` in una struttura multi-file, separando le responsabilità. 
  Non esiste una regola fissa da seguire per l'organizzazione di un prgetto in Tkinter, ma possiamo seguire delle convenzioni.
  
-### Python Package
+### Creare un Package Python
+ 
+ Per organizzare il codice in modo logico, Python utilizza i **package**. 
+ Un package non è altro che una directory che contiene moduli Python correlati (file `.py`) e un file speciale che la identifica come tale.
+ 
+ #### Convenzioni di Nomenclatura
+ 
+ Per convenzione (secondo la guida di stile PEP 8), i nomi dei package e dei moduli dovrebbero essere **corti, tutti in minuscolo**, 
+ e le parole possono essere separate da un trattino basso (`_`) per migliorare la leggibilità.
+ 
+ #### Struttura di un Package
+ 
+ Perché Python riconosca una directory come un package, 
+ questa deve contenere un file speciale chiamato `__init__.py`. La struttura minima è quindi:
+ 
+ ```
+ nome_del_package/
+ ├── __init__.py
+ └── modulo1.py
+ └── modulo2.py
+ ```
+ 
+ #### Il Ruolo del File `__init__.py`
+ 
+ Questo file, anche se vuoto, segnala a Python che la directory non è una semplice cartella, ma un package importabile.
+ 
+ > **Buona pratica**: La community Python raccomanda di mantenere il file `__init__.py` **il più vuoto possibile**. Inserire molta logica in questo file può rendere gli import più lenti e nascondere la struttura dei moduli, rendendo il codice più difficile da capire. Se non hai un motivo specifico per aggiungervi codice, lascialo completamente vuoto.
+ 
+ Un uso comune (ma da fare con moderazione) è quello di importare al suo interno le classi o funzioni più importanti dai sottomoduli, per semplificare l'accesso dall'esterno. Ad esempio, se `modulo1.py` contiene `MiaClasse`, potresti scrivere in `__init__.py`:
+ 
+ `from .modulo1 import MiaClasse`
+ 
+ Questo permetterebbe a un utente di importare la classe con `from nome_del_package import MiaClasse` 
+ invece del più lungo `from nome_del_package.modulo1 import MiaClasse.
+ 
+## Modulo in Python
 
-I nomi dei package e dei moduli in Python si devono scrivere in minuscolo e i nomi seprati dal carattere underscore.
-
+Non è altro che un file **.py** all'interno di un package.
