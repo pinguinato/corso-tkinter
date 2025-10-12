@@ -2,34 +2,36 @@
  ABQ Data Entry Application
 ===========================
 
- Descrizione
- ===========
+Descrizione
+===========
 
- Questo programma fornisce un modulo di inserimento dati per i dati di laboratorio di ABQ Agrilabs.
+Questo programma fornisce un modulo di inserimento dati per i dati di laboratorio di ABQ Agrilabs.
 
- Funzionalità
- ------------
+Funzionalità
+------------
 
-   * Fornisce un modulo di inserimento validato per garantire la correttezza dei dati
-   * Salva i dati in file CSV in formato ABQ
-   * Compila automaticamente i campi del modulo quando possibile
+* Fornisce un modulo di inserimento validato per garantire la correttezza dei dati
+* Salva i dati in file CSV in formato ABQ
+* Compila automaticamente i campi del modulo quando possibile
 
- Autori
- ======
+Autori
+======
 
- Roberto Gianotto, 2025
+Roberto Gianotto, 2025
 
- Requisiti
- =========
+Requisiti
+=========
 
-   * Python 3.10 o superiore
-   * Tkinter
+* Python 3.10 o superiore
+* Tkinter
 
- Utilizzo
- =====
 
- Per avviare l'applicazione, eseguire::
+Utilizzo
+========
+
+Per avviare l'applicazione, eseguire::
 
    python3 ABQ_Data_Entry/abq_data_entry.py (Linux - tipo Ubuntu)
 
    python  ABQ_Data_Entry/abq_data_entry.py (Windows 10/11)
+
