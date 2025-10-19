@@ -90,3 +90,41 @@
 ## Modulo in Python
 
 Non è altro che un file **.py** all'interno di un package.
+
+### Relative Imports (Import Relativi)
+
+Quando si lavora all'interno di un package, è spesso necessario che un modulo importi classi o funzioni da un altro modulo *nello stesso package*. Per fare questo, si usano gli **import relativi**.
+
+Un import relativo usa la notazione con il punto (`.`) per specificare la posizione del modulo da importare rispetto alla posizione del file corrente.
+
+#### Sintassi del Punto
+
+*   `from .nome_modulo import Oggetto`: Il singolo punto `.` significa "**dalla stessa directory (package) in cui si trova questo file**".
+*   `from ..nome_modulo import Oggetto`: I due punti `..` significano "**dalla directory genitore (package genitore)**".
+
+#### Esempio Concreto nel Nostro Progetto
+
+Consideriamo la nostra struttura di file:
+
+```
+ABQ_Data_Entry/
+└── abq_data_entry/
+    ├── __init__.py
+    ├── models.py
+    ├── constants.py
+    └── views.py
+```
+
+Siamo all'interno del file `models.py` e vogliamo importare la classe `FieldTypes` dal file `constants.py`.
+
+Scriviamo:
+```python
+from .constants import FieldTypes as FT
+```
+
+Questo comando dice a Python:
+> "Partendo dalla posizione del file attuale (`models.py`), guarda nella **stessa directory** (`.`), trova il file `constants.py` e importa da lì la classe `FieldTypes`."
+
+#### Vantaggi degli Import Relativi
+
+L'uso degli import relativi all'interno di un package lo rende **autonomo e portabile**. Potremmo rinominare la cartella principale `ABQ_Data_Entry` in qualsiasi altro modo, e tutti gli import interni continuerebbero a funzionare senza bisogno di modifiche, perché non dipendono dal percorso assoluto.
