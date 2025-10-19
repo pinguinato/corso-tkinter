@@ -64,3 +64,47 @@ class CSVModel:
         "Med Height": {'req': True, 'type': FT.decimal, 'min': 0, 'max': 1000, 'inc': .01},
         "Notes": {'req': False, 'type': FT.long_string}
     }
+
+    def __init__(self):
+        """Costruttore della classe CSVModel.
+
+                 Questo metodo inizializza il modello di dati per il salvataggio su file CSV.
+                 Il suo compito principale è determinare il file di destinazione e,
+                 fondamentalmente, verificare in anticipo di avere i permessi necessari
+                 per scrivere su quel file, evitando errori a runtime durante il salvataggio.
+
+                 ANALISI TECNICA:
+                 1.  **Generazione del Nome File**: Crea un nome di file univoco per ogni
+                     giorno, basandosi sulla data corrente (es. `abq_data_record_2023-10-27.csv`).
+                     Questo organizza i dati in file giornalieri.
+
+                 2.  **Controllo dei Permessi (Fail-Fast)**: Esegue una serie di controlli
+                     preventivi utilizzando `os.access` per garantire che il file possa
+                     essere scritto. Questo approccio "fail-fast" (fallisci subito) è
+                     una pratica robusta che previene il fallimento dell'operazione di
+                     salvataggio a metà, dopo che l'utente ha già inserito i dati.
+                     I controlli sono:
+                     -   **Se il file non esiste**: Verifica che la directory genitore sia
+                         scrivibile (per poter creare il file).
+                     -   **Se il file esiste già**: Verifica che il file stesso sia
+                         scrivibile (per poter aggiungere nuove righe).
+
+                 3.  **Sollevamento dell'Eccezione**: Se uno dei controlli sui permessi
+                     fallisce, il costruttore solleva immediatamente una `PermissionError`,
+                     bloccando la creazione dell'oggetto `CSVModel` e segnalando
+                     chiaramente il problema all'avvio dell'applicazione.
+        """
+        datestring = datetime.today().strftime("%Y-%m-%d")
+        filename = "abq_data_record_{}.csv".format(datestring)
+        self.file = Path(filename)
+
+        file_exists = os.access(self.file, os.F_OK)
+        parent_writeable = os.access(self.file.parent, os.W_OK)
+        file_writeable = os.access(self.file, os.W_OK)
+        if (
+            (not file_exists and not parent_writeable) or
+                (file_exists and not file_writeable)
+        ):
+            msg = f"Permission denied accessing file: {filename}"
+            raise PermissionError
+

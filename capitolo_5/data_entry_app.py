@@ -718,7 +718,6 @@ class Application(tk.Tk):
             self.status.set("Cannot save, error in fields: {}".format(', '.join(errors.keys())))
             return
 
-
         datestring = datetime.today().strftime("%Y-%m-%d")
         filename = "abq_data_record_{}.csv".format(datestring)
         newfile = not Path(filename).exists()
