@@ -4,6 +4,7 @@ from datetime import datetime
 
 # in questo modo importo il module dei widgets.py
 from . import widgets as w
+from .constants import FieldTypes as FT
 
 
 class DataRecordForm(ttk.Frame):
@@ -32,8 +33,24 @@ class DataRecordForm(ttk.Frame):
                      verrà costruita dinamicamente l'intera interfaccia grafica.
     """
 
-    def __init__(self, *args, **kwargs):
-        super().__init__(*args, **kwargs)
+    var_types = {
+        FT.string: tk.StringVar,
+        FT.string_list: tk.StringVar,
+        FT.short_string_list: tk.StringVar,
+        FT.iso_date_string: tk.StringVar,
+        FT.long_string: tk.StringVar,
+        FT.decimal: tk.DoubleVar,
+        FT.integer: tk.IntVar,
+        FT.boolean: tk.BooleanVar
+    }
+
+    def __init__(self, parent, model, *args, **kwargs):
+        super().__init__(parent, *args, **kwargs)
+
+        self.model = model
+        fields = self.model.fields
+
+        """
         self._vars = {
             'Date': tk.StringVar(),
             'Time': tk.StringVar(),
@@ -53,6 +70,16 @@ class DataRecordForm(ttk.Frame):
             'Med Height': tk.DoubleVar(),
             'Notes': tk.StringVar()
         }
+        """
+
+        # Create a dict to keep track of input widgets
+        self._vars = {
+            key: self.var_types[spec['type']]()
+            for key, spec in fields.items()
+        }
+
+        # Build the form
+        self.columnconfigure(0, weight=1)
 
         # ---------------------------------------------
 
@@ -63,40 +90,46 @@ class DataRecordForm(ttk.Frame):
 
         # Date
         w.LabelInput(
-            r_info, "Date", var=self._vars["Date"], input_class=w.DateEntry
+            r_info, "Date",
+            field_spec=fields['Date'],
+            var=self._vars["Date"]
         ).grid(row=0, column=0)
 
         # Time
         w.LabelInput(
-            r_info, "Time", input_class=w.ValidatedCombobox,
-            var=self._vars["Time"],
-            input_args={"values": ['8:00', '12:00', '16:00', '20:00']}
+            r_info, "Time",
+            field_spec=fields['Time'],
+            var=self._vars["Time"]
         ).grid(row=0, column=1)
 
         # Technician
         w.LabelInput(
-            r_info, "Technician", var=self._vars["Technician"], input_class=w.RequiredEntry
+            r_info, "Technician",
+            field_spec=fields['Technician'],
+            var=self._vars["Technician"]
         ).grid(row=0, column=2)
 
         # ---------------------------------------------
 
         # Lab
         w.LabelInput(
-            r_info, "Lab", input_class=w.ValidatedRadioGroup,
-            var=self._vars["Lab"],
-            input_args={"values": ["A", "B", "C"]}
+            r_info, "Lab",
+            field_spec=fields['Lab'],
+            var=self._vars["Lab"]
         ).grid(row=1, column=0)
 
         # Plot
         w.LabelInput(
-            r_info, "Plot", input_class=w.ValidatedCombobox,
-            var=self._vars["Plot"],
-            input_args={"values": list(range(1,21))}
+            r_info, "Plot",
+            field_spec=fields['Plot'],
+            var=self._vars["Plot"]
         ).grid(row=1, column=1)
 
         # Seed Sample
         w.LabelInput(
-            r_info, "Seed Sample", var=self._vars["Seed Sample"], input_class=w.RequiredEntry
+            r_info, "Seed Sample",
+            field_spec=fields['Seed Sample'],
+            var=self._vars["Seed Sample"]
         ).grid(row=1, column=2)
 
         # ---------------------------------------------
@@ -116,23 +149,24 @@ class DataRecordForm(ttk.Frame):
 
         # Light klx
         w.LabelInput(
-            e_info, "Light (klx)", input_class=w.ValidatedSpinbox,
+            e_info, "Light (klx)",
             var=self._vars["Light"],
-            input_args={"from_": 0, "to": 100, "increment": .01},
+            field_spec=fields['Light'],
             disable_var=self._vars['Equipment Fault']
         ).grid(row=0, column=1)
 
         # Temperature
         w.LabelInput(
-            e_info, "Temperature (Celsius)", input_class=w.ValidatedSpinbox,
+            e_info, "Temperature (Celsius)",
+            field_spec=fields['Temperature'],
             var=self._vars["Temperature"],
-            input_args={"from_": 4, "to": 40, "increment": .01},
             disable_var=self._vars['Equipment Fault']
         ).grid(row=0, column=2)
 
         # Equipment Fault
         w.LabelInput(
-            e_info, "Equipment Fault", input_class=ttk.Checkbutton,
+            e_info, "Equipment Fault",
+            field_spec=fields['Equipment Fault'],
             var=self._vars["Equipment Fault"]
         ).grid(row=1, column=0, columnspan=3)
 
@@ -144,23 +178,23 @@ class DataRecordForm(ttk.Frame):
 
         # Plants
         w.LabelInput(
-            p_info, "Plants", input_class=w.ValidatedSpinbox,
-            var=self._vars["Plants"],
-            input_args={"from_": 0, "to": 20}
+            p_info, "Plants",
+            field_spec=fields['Plants'],
+            var=self._vars["Plants"]
         ).grid(row=0, column=0)
 
         # Blossoms
         w.LabelInput(
-            p_info, "Blossoms", input_class=w.ValidatedSpinbox,
-            var=self._vars["Blossoms"],
-            input_args={"from_": 0, "to": 1000}
+            p_info, "Blossoms",
+            field_spec=fields['Blossoms'],
+            var=self._vars["Blossoms"]
         ).grid(row=0, column=1)
 
         # Fruit
         w.LabelInput(
-            p_info, "Fruit", input_class=w.ValidatedSpinbox,
-            var=self._vars["Fruit"],
-            input_args={"from_": 0, "to": 1000}
+            p_info, "Fruit",
+            field_spec=fields['Fruit'],
+            var=self._vars["Fruit"]
         ).grid(row=0, column=2)
 
         min_height_var = tk.DoubleVar(value='-infinity')
