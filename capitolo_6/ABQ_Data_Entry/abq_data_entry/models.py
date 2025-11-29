@@ -108,3 +108,40 @@ class CSVModel:
             msg = f"Permission denied accessing file: {filename}"
             raise PermissionError
 
+    """
+    Salva un singolo record di dati nel file CSV.
+
+             Questo metodo è responsabile della persistenza dei dati. Riceve un
+             dizionario di dati e lo accoda al file CSV del giorno.
+
+             Args:
+                 data (dict): Un dizionario contenente i dati del record da salvare.
+
+             ANALISI TECNICA:
+             1.  **Controllo Esistenza File**: Determina se il file CSV esiste già.
+                 Questa informazione è fondamentale per decidere se scrivere o meno
+                 la riga di intestazione (header).
+             2.  **Apertura Sicura del File**: Utilizza un `with open(...)` (context
+                 manager) per aprire il file in modalità "append" (`'a'`). Questo
+                 garantisce che il file venga chiuso automaticamente e in modo sicuro,
+                 anche in caso di errori. `newline=''` è essenziale per la scrittura
+                 di file CSV per evitare la creazione di righe vuote indesiderate.
+             3.  **Uso di `csv.DictWriter`**: Invece di scrivere manualmente stringhe
+                 separate da virgole, usa `csv.DictWriter`. Questo approccio è
+                 molto più robusto perché si basa sui nomi dei campi definiti nello
+                 schema del modello (`self.fields.keys()`), garantendo che i dati
+                 vengano scritti nelle colonne corrette, indipendentemente
+                 dall'ordine.
+             4.  **Scrittura del Record**: Se il file è nuovo, scrive prima
+                 l'intestazione. Successivamente, scrive il dizionario `data` come
+                 una nuova riga nel file.
+    """
+    def save_record(self, data):
+        newfile = not self.file.exists()
+
+        with open(self.file, 'a', newline='') as fh:
+            csvwriter = csv.DictWriter(fh, fieldnames=self.fields.keys())
+            if newfile:
+                csvwriter.writeheader()
+
+            csvwriter.writerow(data)
