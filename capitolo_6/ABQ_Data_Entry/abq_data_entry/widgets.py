@@ -2,6 +2,7 @@ import tkinter as tk
 from tkinter import ttk
 from datetime import datetime
 from decimal import Decimal, InvalidOperation
+from .constants import FieldTypes as FT
 
 A_VALUE_IS_REQUIRED = 'A value is required'
 
@@ -703,6 +704,88 @@ class ValidatedRadioGroup(ttk.Frame):
 
 
 """
+    SCOPO DELLA CLASSE `BoundText`:
+    =============================
+    Questa classe estende il widget standard `tk.Text` per aggiungere una
+    funzionalità fondamentale che manca nativamente: il "two-way data binding"
+    (collegamento dati a due vie) tramite l'opzione `textvariable`.
+
+    In pratica, un'istanza di `BoundText` e una variabile di controllo di Tkinter
+    (come `tk.StringVar`) rimangono costantemente sincronizzate:
+    1.  Se la variabile viene modificata programmaticamente (es. `var.set(...)`),
+        il testo nel widget si aggiorna automaticamente.
+    2.  Se l'utente scrive o modifica il testo all'interno del widget,
+        la variabile collegata viene aggiornata di conseguenza.
+
+    COME FUNZIONA (ANALISI TECNICA):
+    ================================
+    Il two-way binding è implementato attraverso due meccanismi distinti:
+
+    1.  Binding "dalla Variabile al Widget":
+        - Nel costruttore `__init__`, viene impostato un "osservatore" (`trace`)
+          sulla variabile tramite `self._variable.trace_add('write', ...)`.
+        - Questo `trace` fa sì che, ogni volta che la variabile viene "scritta"
+          (modificata), venga eseguito il metodo `_set_content`.
+        - `_set_content` si occupa di cancellare il testo attuale del widget
+          e inserire il nuovo valore preso dalla variabile.
+
+    2.  Binding "dal Widget alla Variabile":
+        - Nel metodo `_set_content`, il widget viene collegato all'evento
+          virtuale `<<Modified>>` tramite `self.bind('<<Modified>>', ...)`.
+        - Questo evento viene generato da Tkinter ogni volta che il contenuto
+          del widget `Text` viene alterato (es. dall'utente che scrive).
+        - L'evento scatena l'esecuzione del metodo `_set_var`, che a sua volta:
+          a) Controlla se la modifica è reale con `self.edit_modified()`.
+          b) Legge il nuovo contenuto del widget con `self.get(...)`.
+          c) Aggiorna la variabile collegata con `self._variable.set(...)`.
+          d) Resetta il flag di modifica con `self.edit_modified(False)` per
+             essere pronti alla modifica successiva.
+
+    CRITICITÀ - RISCHIO DI RICORSIONE INFINITA:
+    ===========================================
+    L'implementazione attuale, sebbene intelligente, presenta un serio rischio
+    di ricorsione infinita che può bloccare l'applicazione.
+    Il ciclo è il seguente:
+    1. L'utente scrive -> `_set_var` viene chiamato.
+    2. `_set_var` aggiorna la variabile.
+    3. L'aggiornamento della variabile fa scattare il `trace` -> `_set_content` viene chiamato.
+    4. `_set_content` modifica il widget.
+    5. La modifica del widget fa scattare di nuovo l'evento `<<Modified>>`... e il ciclo ricomincia.
+"""
+
+
+class BoundText(tk.Text):
+    """Un widget Text con una variabile collegata (two-way binding)."""
+    def __init__(self, *args, textvariable=None, **kwargs):
+        super().__init__(*args, **kwargs)
+        self._variable = textvariable
+        if self._variable:
+            # Imposta il contenuto iniziale e lega gli eventi in modo sicuro
+            self.insert('1.0', self._variable.get())
+
+            # 1. Binding: dalla Variabile al Widget
+            self._variable.trace_add('write', self._from_var_to_widget)
+
+            # 2. Binding: dal Widget alla Variabile
+            self.bind('<<Modified>>', self._from_widget_to_var)
+
+    def _from_var_to_widget(self, *_):
+        """Aggiorna il widget quando la variabile cambia, evitando cicli."""
+        widget_content = self.get('1.0', 'end-1c')
+        var_content = self._variable.get()
+        if widget_content != var_content:
+            self.delete('1.0', tk.END)
+            self.insert('1.0', var_content)
+
+    def _from_widget_to_var(self, *_):
+        """Aggiorna la variabile quando l'utente scrive nel widget."""
+        if self.edit_modified():
+            content = self.get('1.0', 'end-1c')
+            self._variable.set(content)
+            self.edit_modified(False)
+
+
+"""
     SCOPO DELLA CLASSE `LabelInput`:
     ==============================
     Questa classe è un "compound widget" (widget composto) avanzato, progettata
@@ -769,15 +852,38 @@ class ValidatedRadioGroup(ttk.Frame):
 class LabelInput(tk.Frame):
     """A widget containing a label and input togheter"""
 
+    field_types = {
+        FT.string: RequiredEntry,
+        FT.string_list: ValidatedCombobox,
+        FT.short_string_list: ValidatedRadioGroup,
+        FT.iso_date_string: DateEntry,
+        FT.long_string: BoundText,
+        FT.decimal: ValidatedSpinbox,
+        FT.integer: ValidatedSpinbox,
+        FT.boolean: ttk.Checkbutton
+    }
+
     def __init__(
             self, parent, label, var, input_class=ttk.Entry,
-            input_args=None, label_args=None, disable_var=None, **kwargs
+            input_args=None, label_args=None, field_spec=None, disable_var=None, **kwargs
     ):
         super().__init__(parent, **kwargs)
         input_args = input_args or {}
         label_args = label_args or {}
         self.variable = var
         self.variable.label_widget = self
+
+        if field_spec:
+            field_type = field_spec.get('type', FT.string)
+            input_class = input_class or self.field_types.get(field_type)
+            if 'min' in field_spec and 'from' not in input_args:
+                input_args['from_'] = field_spec.get('min')
+            if 'max' in field_spec and 'to' not in input_args:
+                input_args['to'] = field_spec.get('max')
+            if 'inc' in field_spec and 'increment' not in input_args:
+                input_args['increment'] = field_spec.get('inc')
+            if 'values' in field_spec and 'values' not in input_args:
+                input_args['values'] = field_spec.get('values')
 
         if input_class in (ttk.Checkbutton, ttk.Button):
             input_args["text"] = label
@@ -862,85 +968,3 @@ class LabelInput(tk.Frame):
             self.error.set('')
         else:
             self.input.configure(state=tk.NORMAL)
-
-
-"""
-    SCOPO DELLA CLASSE `BoundText`:
-    =============================
-    Questa classe estende il widget standard `tk.Text` per aggiungere una
-    funzionalità fondamentale che manca nativamente: il "two-way data binding"
-    (collegamento dati a due vie) tramite l'opzione `textvariable`.
-
-    In pratica, un'istanza di `BoundText` e una variabile di controllo di Tkinter
-    (come `tk.StringVar`) rimangono costantemente sincronizzate:
-    1.  Se la variabile viene modificata programmaticamente (es. `var.set(...)`),
-        il testo nel widget si aggiorna automaticamente.
-    2.  Se l'utente scrive o modifica il testo all'interno del widget,
-        la variabile collegata viene aggiornata di conseguenza.
-
-    COME FUNZIONA (ANALISI TECNICA):
-    ================================
-    Il two-way binding è implementato attraverso due meccanismi distinti:
-
-    1.  Binding "dalla Variabile al Widget":
-        - Nel costruttore `__init__`, viene impostato un "osservatore" (`trace`)
-          sulla variabile tramite `self._variable.trace_add('write', ...)`.
-        - Questo `trace` fa sì che, ogni volta che la variabile viene "scritta"
-          (modificata), venga eseguito il metodo `_set_content`.
-        - `_set_content` si occupa di cancellare il testo attuale del widget
-          e inserire il nuovo valore preso dalla variabile.
-
-    2.  Binding "dal Widget alla Variabile":
-        - Nel metodo `_set_content`, il widget viene collegato all'evento
-          virtuale `<<Modified>>` tramite `self.bind('<<Modified>>', ...)`.
-        - Questo evento viene generato da Tkinter ogni volta che il contenuto
-          del widget `Text` viene alterato (es. dall'utente che scrive).
-        - L'evento scatena l'esecuzione del metodo `_set_var`, che a sua volta:
-          a) Controlla se la modifica è reale con `self.edit_modified()`.
-          b) Legge il nuovo contenuto del widget con `self.get(...)`.
-          c) Aggiorna la variabile collegata con `self._variable.set(...)`.
-          d) Resetta il flag di modifica con `self.edit_modified(False)` per
-             essere pronti alla modifica successiva.
-
-    CRITICITÀ - RISCHIO DI RICORSIONE INFINITA:
-    ===========================================
-    L'implementazione attuale, sebbene intelligente, presenta un serio rischio
-    di ricorsione infinita che può bloccare l'applicazione.
-    Il ciclo è il seguente:
-    1. L'utente scrive -> `_set_var` viene chiamato.
-    2. `_set_var` aggiorna la variabile.
-    3. L'aggiornamento della variabile fa scattare il `trace` -> `_set_content` viene chiamato.
-    4. `_set_content` modifica il widget.
-    5. La modifica del widget fa scattare di nuovo l'evento `<<Modified>>`... e il ciclo ricomincia.
-"""
-
-
-class BoundText(tk.Text):
-    """Un widget Text con una variabile collegata (two-way binding)."""
-    def __init__(self, *args, textvariable=None, **kwargs):
-        super().__init__(*args, **kwargs)
-        self._variable = textvariable
-        if self._variable:
-            # Imposta il contenuto iniziale e lega gli eventi in modo sicuro
-            self.insert('1.0', self._variable.get())
-
-            # 1. Binding: dalla Variabile al Widget
-            self._variable.trace_add('write', self._from_var_to_widget)
-
-            # 2. Binding: dal Widget alla Variabile
-            self.bind('<<Modified>>', self._from_widget_to_var)
-
-    def _from_var_to_widget(self, *_):
-        """Aggiorna il widget quando la variabile cambia, evitando cicli."""
-        widget_content = self.get('1.0', 'end-1c')
-        var_content = self._variable.get()
-        if widget_content != var_content:
-            self.delete('1.0', tk.END)
-            self.insert('1.0', var_content)
-
-    def _from_widget_to_var(self, *_):
-        """Aggiorna la variabile quando l'utente scrive nel widget."""
-        if self.edit_modified():
-            content = self.get('1.0', 'end-1c')
-            self._variable.set(content)
-            self.edit_modified(False)
