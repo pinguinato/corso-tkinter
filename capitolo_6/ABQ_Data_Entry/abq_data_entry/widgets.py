@@ -1,0 +1,946 @@
+import tkinter as tk
+from tkinter import ttk
+from datetime import datetime
+from decimal import Decimal, InvalidOperation
+
+A_VALUE_IS_REQUIRED = 'A value is required'
+
+
+class ValidatedMixin:
+    """Un "Mixin" che aggiunge una funzionalità di validazione completa a un widget.
+
+     Questa non è una classe pensata per essere usata da sola, ma per essere
+     "mescolata" (da cui il nome Mixin) con altre classi di widget (come
+     `ttk.Entry`, `ttk.Spinbox`) tramite ereditarietà multipla.
+
+     Il suo scopo è automatizzare completamente la configurazione del sistema
+     di validazione di Tkinter, lasciando alla classe figlia solo il compito
+     di definire la logica di validazione specifica.
+
+     ARCHITETTURA E FUNZIONAMENTO:
+     -----------------------------
+     1.  **`__init__`**: Il costruttore esegue tutta la configurazione:
+         -   `self.error`: Garantisce che il widget abbia sempre una `StringVar`
+             per i messaggi di errore.
+         -   `super().__init__`: Chiama il costruttore della classe successiva
+             nell'ordine di ereditarietà (es. `ttk.Entry`), assicurando che
+             il widget venga creato correttamente.
+         -   `self.register()`: Registra i metodi `_validate` e `_invalid`
+             (che devono essere implementati dalla classe figlia) per renderli
+             chiamabili da Tkinter.
+         -   `self.configure()`: "Accende" il sistema di validazione sul widget,
+             collegando gli eventi ai comandi registrati e specificando quali
+             dati passare tramite i codici di sostituzione (`%P`, `%s`, ecc.).
+
+     2.  **Metodi Segnaposto**: `_validate` e `_invalid` sono definiti qui
+         con una logica di default (restituisce sempre `True`, non fa nulla
+         in caso di errore). Questo previene errori se una classe figlia
+         dimentica di sovrascriverli.
+
+     ESEMPIO DI UTILIZZO:
+     --------------------
+     class ValidatedEntry(ValidateMixin, ttk.Entry):
+         def _validate(self, *args):
+             # ... logica di validazione specifica ...
+         def _invalid(self, *args):
+             # ... logica per gestire l'errore ...
+     """
+    def __init__(self, *args, error_var=None, **kwargs):
+        self.error = error_var or tk.StringVar()
+        super().__init__(*args, **kwargs)
+
+        vcmd = self.register(self._validate)
+        invcmd = self.register(self._invalid)
+
+        self.configure(
+            validate='all',
+            validatecommand=(vcmd, '%P', '%s', '%S', '%V', '%i', '%d'),
+            invalidcommand=(invcmd, '%P', '%s', '%S', '%V', '%i', '%d')
+        )
+
+    def _toggle_error(self, on=False):
+        """Attiva o disattiva il feedback visivo di errore sul widget.
+
+                 Questo è un metodo "helper" privato che centralizza la logica per
+                 cambiare l'aspetto del widget stesso (in questo caso, il colore del
+                 testo) per indicare uno stato di errore o uno stato normale.
+
+                 Viene chiamato dai metodi di validazione per fornire un feedback
+                 visivo immediato e inequivocabile direttamente sul campo errato.
+
+                 Args:
+                     on (bool, optional): Un flag booleano che determina lo stato.
+                         - Se `True`, il testo del widget viene colorato di rosso.
+                         - Se `False` (default), il testo del widget torna nero.
+                 """
+        self.configure(foreground=('red' if on else 'black'))
+
+    def _validate(self, proposed, current, char, event, index, action):
+        """Metodo "centralino" che orchestra il processo di validazione.
+
+            Questo è il metodo principale chiamato da Tkinter per ogni evento di
+            validazione. Non contiene la logica di validazione specifica, ma agisce
+            come un "dispatcher": determina il tipo di evento e delega il lavoro
+            ai metodi specializzati (`_key_validate` o `_focusout_validate`).
+
+            Questo approccio, basato sul "Principio di Separazione delle Competenze",
+            mantiene il Mixin pulito e permette alle classi figlie di sovrascrivere
+            solo la logica di cui hanno bisogno.
+
+            ANALISI TECNICA:
+            1.  **Reset dello Stato di Errore**: All'inizio di ogni chiamata, resetta
+                il messaggio di errore e il feedback visivo. Questo assicura che
+                gli errori non siano "persistenti" e che lo stato venga
+                rivalutato a ogni interazione.
+            2.  **Controllo dello Stato 'DISABLED'**: Come prima cosa, controlla se
+                il widget è disabilitato. In tal caso, la validazione viene saltata
+                restituendo `True`. È una pratica robusta per evitare validazioni
+                indesiderate.
+            3.  **Delega basata sull'Evento**:
+                - Se `event == 'focusout'`, delega la validazione al metodo
+                  `_focusout_validate`.
+                - Se `event == 'key'`, delega la validazione al metodo
+                  `_key_validate`, passandogli tutti gli argomenti necessari.
+            """
+        self.error.set('')
+        self._toggle_error()
+
+        # if widget is disabled don't validate
+        state = str(self.configure('state')[-1])
+        if state == tk.DISABLED:
+            return True
+
+        valid = True
+        if event == 'focusout':
+            valid = self._focusout_validate(proposed=proposed, event=event)
+        elif event == 'key':
+            valid = self._key_validate(
+                proposed=proposed,
+                current=current,
+                char=char,
+                event=event,
+                index=index,
+                action=action
+            )
+        return valid
+
+    def _focusout_validate(self, **kwargs):
+        """Metodo segnaposto per la validazione all'uscita dal campo (focus-out).
+
+                 Questo metodo è progettato per essere **sovrascritto** dalle classi
+                 figlie che utilizzano il `ValidateMixin`.
+
+                 Il suo scopo è contenere la logica di validazione che deve essere
+                 eseguita solo quando l'utente ha finito di interagire con il widget
+                 e sposta il focus altrove.
+
+                 Esempi di utilizzo nelle classi figlie:
+                 -   In un campo per date, controllerebbe che la data sia semanticamente
+                     valida (es. "2023-02-30" non è valido).
+                 -   In un campo obbligatorio, controllerebbe che il valore non sia vuoto.
+
+                 Args:
+                     **kwargs: Accetta qualsiasi argomento nominato per massima
+                               flessibilità, anche se nella sua forma base non li usa.
+
+                 Returns:
+                     bool: Per default restituisce `True`, significando che, se non
+                           sovrascritto, nessuna validazione specifica viene eseguita
+                           al focus-out.
+                 """
+        return True
+
+    def _key_validate(self, **kwargs):
+        """Metodo segnaposto per la validazione a ogni pressione di un tasto.
+
+                 Questo metodo è progettato per essere **sovrascritto** dalle classi
+                 figlie che utilizzano il `ValidateMixin`.
+
+                 Il suo scopo è contenere la logica di "Input Filtering", ovvero la
+                 validazione che viene eseguita in tempo reale mentre l'utente digita.
+                 È ideale per impedire fisicamente l'inserimento di caratteri non validi.
+
+                 Esempi di utilizzo nelle classi figlie:
+                 -   In un campo numerico, bloccherebbe l'inserimento di lettere.
+                 -   In un campo per date con formato fisso, permetterebbe solo cifre
+                     e trattini nelle posizioni corrette.
+
+                 Args:
+                     **kwargs: Accetta tutti gli argomenti di validazione (proposed,
+                               current, char, ecc.) come argomenti nominati, offrendo
+                               massima flessibilità alle classi figlie.
+
+                 Returns:
+                     bool: Per default restituisce `True`, significando che, se non
+                           sovrascritto, qualsiasi carattere digitato è considerato
+                           valido.
+                 """
+        return True
+
+    def _invalid(self, proposed, current, char, event, index, action):
+        """
+            Gestore centrale per gli eventi di validazione.
+            Questo metodo viene chiamato quando l'input nel widget non è valido.
+            In base al tipo di evento ('focusout' o 'key'), delega la gestione
+            al metodo specifico corrispondente.
+        """
+        if event == 'focusout':
+            self._focusout_invalid(event=event)
+        elif event == 'key':
+            self._key_invalid(
+                proposed=proposed,
+                current=current,
+                char=char,
+                event=event,
+                index=index,
+                action=action
+            )
+
+    def _focusout_invalid(self, **kwargs):
+        """
+            Gestisce l'input non valido quando il widget perde il focus.
+            Quando l'utente si sposta su un altro campo e il valore inserito
+            non è valido, questo metodo viene invocato per mostrare un feedback
+            visivo di errore (ad esempio, cambiando il colore del bordo).
+        """
+        self._toggle_error(True)
+
+    def _key_invalid(self, **kwargs):
+        """
+            Gestisce l'input non valido durante la digitazione (evento 'key').
+            Per impostazione predefinita, questo metodo non fa nulla, ma può essere
+            sovrascritto nelle sottoclassi per implementare una logica specifica,
+            come impedire l'inserimento di caratteri non validi in tempo reale.
+        """
+        pass
+
+    def trigger_focus_validation(self):
+        """
+            Attiva manualmente la validazione del widget come se avesse perso il focus.
+
+            Questo metodo è utile per forzare il controllo di validità di un campo,
+            ad esempio quando si preme un pulsante "Salva" e si vuole verificare
+            che tutti i campi siano compilati correttamente prima di procedere.
+
+            Simula un evento 'focusout', controlla se il contenuto attuale è valido
+            e, in caso negativo, attiva il feedback visivo di errore.
+
+            Restituisce:
+                bool: True se il contenuto del widget è valido, altrimenti False.
+        """
+        valid = self._validate('', '', '', 'focusout', '', '')
+        if not valid:
+            self._focusout_invalid(event='focusout')
+        return valid
+
+
+class RequiredEntry(ValidatedMixin, ttk.Entry):
+    """
+        Un widget ttk.Entry che richiede l'inserimento di un valore.
+
+        Questa classe estende un normale campo di input (ttk.Entry) aggiungendo
+        una regola di validazione specifica: il campo non può essere lasciato vuoto.
+
+        Eredita da `ValidatedMixin` per integrare il meccanismo di validazione
+        e mostra un messaggio di errore se l'utente lascia il campo vuoto e
+        sposta il focus altrove.
+    """
+    def _focusout_validate(self, **kwargs):
+        """
+                Esegue la validazione quando il widget perde il focus.
+                Controlla se il campo è vuoto.
+        """
+        valid = True
+        if not self.get():
+            valid = False
+            self.error.set(A_VALUE_IS_REQUIRED)
+        return valid
+
+
+class DateEntry(ValidatedMixin, ttk.Entry):
+    """
+        Un widget ttk.Entry per l'inserimento di date nel formato AAAA-MM-GG.
+
+        Questa classe garantisce che l'utente possa inserire solo date valide,
+        fornendo due livelli di validazione:
+        1. Validazione in tempo reale (`_key_validate`): controlla ogni carattere
+           digitato per conformarsi alla struttura AAAA-MM-GG.
+        2. Validazione al 'focus-out' (`_focusout_validate`): controlla la validità
+           complessiva della data (es. che non sia '2023-02-30') quando l'utente
+           lascia il campo.
+    """
+    def _key_validate(self, action, index, char, **kwargs):
+        """
+                Valida l'input dell'utente durante la digitazione.
+
+                Questo metodo viene chiamato a ogni pressione di un tasto e permette
+                solo l'inserimento di caratteri che corrispondono al formato AAAA-MM-GG.
+                - Consente solo cifre nelle posizioni di anno, mese e giorno.
+                - Consente solo il trattino '-' nelle posizioni dei separatori.
+                - Blocca qualsiasi altro carattere o un numero eccessivo di caratteri.
+                - L'azione '0' corrisponde a una cancellazione, che è sempre permessa.
+        """
+        valid = True
+
+        if action == '0':
+            valid = True
+        elif index in ('0', '1', '2', '3', '5', '6', '8', '9'):
+            valid = char.isdigit()
+        elif index in ('4', '7'):
+            valid = char == '-'
+        else:
+            valid = False
+        return valid
+
+    def _focusout_validate(self, **kwargs):
+        """
+                Valida il contenuto del campo quando perde il focus.
+
+                Questo metodo esegue un controllo completo sulla data inserita:
+                1. Verifica che il campo non sia vuoto.
+                2. Tenta di convertire la stringa in un oggetto `datetime` per
+                   assicurarsi che la data sia logicamente valida (es. il giorno
+                   esiste per quel mese e anno).
+                Imposta un messaggio di errore appropriato se la validazione fallisce.
+        """
+        valid = True
+
+        if not self.get():
+            self.error.set(A_VALUE_IS_REQUIRED)
+            valid = False
+        try:
+            datetime.strptime(self.get(), '%Y-%m-%d')
+        except ValueError:
+            self.error.set('Invalid date')
+            valid = False
+        return valid
+
+
+class ValidatedCombobox(ValidatedMixin, ttk.Combobox):
+    """
+        Un widget ttk.Combobox con validazione e autocompletamento.
+
+        Questa classe estende ttk.Combobox per aggiungere due funzionalità:
+        1. Validazione in tempo reale: durante la digitazione, il testo inserito
+           viene confrontato con l'elenco di valori disponibili. Se il testo
+           non corrisponde all'inizio di nessuna opzione, l'input viene bloccato.
+        2. Autocompletamento: se il testo digitato corrisponde in modo univoco
+           all'inizio di una sola opzione, il campo viene automaticamente
+           completato con tale opzione.
+        3. Campo obbligatorio: la validazione al 'focus-out' garantisce che
+           un valore sia stato selezionato.
+    """
+    def _key_validate(self, proposed, action, **kwargs):
+        """
+                Valida l'input durante la digitazione e gestisce l'autocompletamento.
+
+                Questo metodo viene chiamato a ogni modifica del testo:
+                - Se l'utente sta cancellando ('action' == '0'), l'azione è permessa.
+                - Filtra l'elenco di opzioni per trovare quelle che iniziano con
+                  il testo proposto (ignorando maiuscole/minuscole).
+                - Se non ci sono corrispondenze, l'input non è valido e viene bloccato.
+                - Se c'è una sola corrispondenza, il campo viene autocompletato e
+                  la modifica originale viene annullata (return False) per evitare
+                  testo duplicato o errato.
+        """
+        valid = True
+
+        if action == '0':
+            self.get('')
+            return True
+
+        values = self.cget('values')
+        matching = [
+            x for x in values
+            if x.lower().startswith(proposed.lower())
+        ]
+        if len(matching) == 0:
+            valid = False
+        elif len(matching) == 1:
+            self.set(matching[0])
+            self.icursor(tk.END)
+            valid = False
+
+        return valid
+
+    def _focusout_validate(self, **kwargs):
+        """
+            Valida il campo quando perde il focus, assicurandosi che non sia vuoto.
+        """
+        valid = True
+        if not self.get():
+            valid = False
+            self.error.set(A_VALUE_IS_REQUIRED)
+        return valid
+
+
+class ValidatedSpinbox(ValidatedMixin, ttk.Spinbox):
+    """
+        Un widget ttk.Spinbox con validazione numerica avanzata.
+
+        Questa classe estende ttk.Spinbox per fornire una validazione robusta
+        sia durante la digitazione che al momento della perdita del focus. Utilizza
+        il tipo `Decimal` per gestire i numeri, garantendo un'alta precisione
+        ed evitando i comuni errori di arrotondamento dei float.
+
+        Funzionalità principali:
+        - __init__: Determina la precisione decimale richiesta dall'opzione 'increment'.
+        - _key_validate: Valida ogni carattere inserito per prevenire input
+          non validi in tempo reale (es. lettere, doppi decimali, etc.).
+        - _focusout_validate: Esegue un controllo finale quando l'utente lascia
+          il campo per assicurarsi che il valore rientri nei limiti min/max.
+    """
+    def __init__(
+            self, *args, min_var=None, max_var=None, focus_update_var=None,
+                 from_='-Infinity', to='Infinity', **kwargs):
+        """
+            Inizializza lo Spinbox e imposta i binding dinamici.
+
+            Questo costruttore estende il comportamento di un normale Spinbox
+            aggiungendo funzionalità avanzate per la gestione dinamica dei limiti
+            e per la notifica di aggiornamenti.
+
+            Args:
+                *args, **kwargs: Argomenti standard per il widget ttk.Spinbox.
+                min_var (tk.Variable, optional): Una variabile Tkinter il cui valore
+                    determina dinamicamente il limite minimo dello Spinbox.
+                max_var (tk.Variable, optional): Una variabile Tkinter il cui valore
+                    determina dinamicamente il limite massimo dello Spinbox.
+                focus_update_var (tk.Variable, optional): Una variabile Tkinter che
+                    viene aggiornata quando lo Spinbox perde il focus, per notificare
+                    altre parti dell'applicazione.
+                from_ (str or float): Il limite minimo iniziale.
+                to (str or float): Il limite massimo iniziale.
+
+            ANALISI TECNICA:
+            1.  **Calcolo della Precisione**: Analizza il valore di 'increment' per
+                determinare il numero di cifre decimali consentite, usando il tipo
+                `Decimal` per garantire precisione.
+            2.  **Gestione della Variabile Interna**: Se non viene fornita una
+                `textvariable`, ne crea una (`tk.DoubleVar`) per rendere il widget
+                autonomo.
+            3.  **Binding dei Limiti Dinamici**:
+                - Se `min_var` è fornito, imposta un "trace" su di esso. Ogni volta
+                  che `min_var` cambia, il metodo `_set_minimum` viene chiamato per
+                  aggiornare il limite inferiore ('from') dello Spinbox.
+                - Lo stesso avviene per `max_var` e il limite superiore ('to').
+            4.  **Notifica su Focus-Out**: Se `focus_update_var` è fornito, lega
+                l'evento `<FocusOut>` a un metodo che aggiornerà questa variabile,
+                permettendo ad altri widget (es. un grafico) di reagire quando
+                l'utente ha finito di modificare il valore.
+        """
+        super().__init__(*args, from_=from_, to=to, **kwargs)
+        # Converte l'incremento in un oggetto Decimal per calcolarne la precisione
+        increment = Decimal(str(kwargs.get('increment', '1.0')))
+        # L'esponente del Decimal normalizzato ci dà il numero di cifre decimali
+        self.precision = increment.normalize().as_tuple().exponent
+        self.variable = kwargs.get('textvariable')
+
+        if not self.variable:
+            self.variable = tk.DoubleVar()
+            self.configure(textvariable=self.variable)
+
+        if min_var:
+            self.min_var =min_var
+            self.min_var.trace_add('write', self._set_minimum)
+
+        if max_var:
+            self.max_var =max_var
+            self.max_var.trace_add('write', self._set_maximum)
+
+        self.focus_update_var = focus_update_var
+        self.bind('<FocusOut>', self._set_focus_update_var)
+
+    def _set_focus_update_var(self, event):
+        """
+            Aggiorna la variabile di notifica esterna quando il widget perde il focus.
+
+            Questo metodo è il gestore dell'evento `<FocusOut>` e agisce come un
+            meccanismo di notifica. Il suo scopo è comunicare ad altre parti
+            dell'applicazione che l'utente ha terminato di modificare il valore
+            e che tale valore è valido.
+
+            ANALISI TECNICA:
+            1.  Recupera il valore corrente dal widget.
+            2.  Esegue un doppio controllo:
+                a) Verifica che una `focus_update_var` sia stata effettivamente
+                   fornita durante l'inizializzazione.
+                b) Verifica che non ci siano errori di validazione attivi
+                   controllando che la variabile `self.error` sia vuota.
+            3.  Solo se entrambe le condizioni sono vere, aggiorna la
+                `focus_update_var` con il valore del widget.
+
+            Questo previene aggiornamenti inutili o basati su dati non validi,
+            ed è ideale per innescare azioni dipendenti (es. ridisegnare un grafico)
+            solo quando il dato è stabile e corretto.
+        """
+        value = self.get()
+        if self.focus_update_var and not self.error.get():
+            self.focus_update_var.set(value)
+
+    def _set_minimum(self, *_):
+        """
+            Callback per aggiornare dinamicamente il limite minimo dello Spinbox.
+
+            Questo metodo viene eseguito automaticamente ogni volta che la variabile
+            `self.min_var` (se fornita) viene modificata. Il suo scopo è applicare
+            il nuovo limite minimo e ri-validare immediatamente il valore corrente
+            del widget rispetto a questo nuovo limite.
+
+            ANALISI TECNICA:
+            1.  **Salva Stato Corrente**: Memorizza il valore attuale presente nel
+                widget prima di apportare qualsiasi modifica.
+            2.  **Aggiorna Limite**: Tenta di leggere il nuovo minimo da `min_var`
+                e lo applica alla configurazione `from_` dello Spinbox. Il blocco
+                `try...except` gestisce con robustezza eventuali valori non validi
+                (es. stringhe vuote) in `min_var`.
+            3.  **Ripristina e Ri-valuta**: Dopo aver cambiato il limite, il valore
+                nel widget potrebbe essere stato alterato da Tkinter. Le righe
+                successive forzano un ripristino del valore originale e,
+                fondamentalmente, attivano una validazione completa tramite
+                `trigger_focusout_validation()`.
+            4.  **Effetto Finale**: Se il valore corrente diventa non valido a causa
+                del nuovo limite (es. il valore è 5 e il nuovo minimo è 10),
+                la ri-validazione forzata farà apparire il messaggio di errore.
+        """
+        current = self.get()
+
+        try:
+            new_min = self.min_var.get()
+            self.config(from_=new_min)
+        except (tk.TclError, ValueError):
+            pass
+
+        if not current:
+            self.delete(0, tk.END)
+        else:
+            self.variable.set(current)
+        self.trigger_focusout_validation()
+
+    def _set_maximum(self, *_):
+        """
+            Callback per aggiornare dinamicamente il limite massimo dello Spinbox.
+
+            Questo metodo viene eseguito automaticamente ogni volta che la variabile
+            `self.max_var` (se fornita) viene modificata. Il suo scopo è applicare
+            il nuovo limite massimo e ri-validare immediatamente il valore corrente
+            del widget rispetto a questo nuovo limite.
+
+            ANALISI TECNICA:
+            1.  **Salva Stato Corrente**: Memorizza il valore attuale presente nel
+                widget prima di apportare qualsiasi modifica.
+            2.  **Aggiorna Limite**: Tenta di leggere il nuovo massimo da `max_var`
+                e lo applica alla configurazione `to` dello Spinbox. Il blocco
+                `try...except` gestisce con robustezza eventuali valori non validi
+                in `max_var`.
+            3.  **Ripristina e Ri-valuta**: Dopo aver cambiato il limite, il valore
+                nel widget potrebbe essere stato alterato da Tkinter. Le righe
+                successive forzano un ripristino del valore originale e,
+                fondamentalmente, attivano una validazione completa tramite
+                `trigger_focusout_validation()`.
+            4.  **Effetto Finale**: Se il valore corrente diventa non valido a causa
+                del nuovo limite (es. il valore è 15 e il nuovo massimo è 10),
+                la ri-validazione forzata farà apparire il messaggio di errore.
+        """
+        current = self.get()
+
+        try:
+            new_max = self.max_var.get()
+            self.config(to=new_max)
+        except (tk.TclError, ValueError):
+            pass
+
+        if not current:
+            self.delete(0, tk.END)
+        else:
+            self.variable.set(current)
+        self.trigger_focusout_validation()
+
+    def _key_validate(self, char, index, current, proposed, action, **kwargs):
+        """
+                Valida l'input dell'utente durante la digitazione in tempo reale.
+
+                Questo metodo previene l'inserimento di caratteri che renderebbero
+                il numero non valido. Controlla:
+                - Che il carattere sia una cifra, un punto o un segno meno.
+                - Che il segno meno appaia solo all'inizio e solo se i negativi sono permessi.
+                - Che ci sia al massimo un punto decimale e solo se i decimali sono permessi.
+                - Che il numero di cifre decimali non superi la precisione definita.
+                - Che il valore non superi il limite massimo.
+        """
+        # L'azione '0' è una cancellazione, sempre permessa
+        if action == '0':
+            return True
+        valid = True
+        min_val = self.cget('from')
+        max_val = self.cget('to')
+        no_negative = min_val >= 0
+        no_decimal = self.precision >= 0
+
+        # Controlli sui singoli caratteri
+        if any([
+            (char not in '-1234567890.'),
+            (char == '-' and (no_negative or index != '0')),
+            (char == '.' and (no_decimal or '.' in current))
+        ]):
+            return False
+
+        # Permette stati intermedi come '-' o '.' da soli
+        if proposed in '-.':
+            return True
+
+        proposed = Decimal(proposed)
+        proposed_precision = proposed.as_tuple().exponent
+
+        if any([
+            (proposed > max_val),
+            (proposed_precision < self.precision) # Precisione errata (troppi decimali)
+        ]):
+            return False
+
+        return valid
+
+    def _focusout_validate(self, **kwargs):
+        """
+                Esegue la validazione finale quando il widget perde il focus.
+
+                Questo metodo controlla la validità complessiva del valore inserito:
+                1. Verifica che il testo sia un numero valido.
+                2. Controlla che il valore non sia inferiore al minimo consentito.
+                3. Controlla che il valore non sia superiore al massimo consentito.
+                Imposta un messaggio di errore specifico per ogni tipo di fallimento.
+        """
+        valid = True
+        value = self.get()
+        min_val = self.cget('from')
+        max_val = self.cget('to')
+
+        try:
+            d_value = Decimal(value)
+        except InvalidOperation:
+            self.error.set(f'Invalid number string: {value}')
+            return False
+
+        if d_value < min_val:
+            self.error.set(f'Value is too low: (min {min_val})')
+            valid = False
+
+        if d_value > max_val:
+            self.error.set(f'Value is too high: (max {max_val})')
+            valid = False
+
+        return valid
+
+    def trigger_focusout_validation(self, *_):
+        """
+                Esegue la validazione quando il widget perde il focus.
+
+                Questo metodo viene chiamato dall'evento bind. Pulisce l'errore
+                precedente e controlla se la variabile associata ha un valore.
+                Se la variabile è vuota (nessun pulsante selezionato), imposta
+                un messaggio di errore.
+        """
+        self.error.set('')
+        if not self.variable.get():
+            self.error.set(A_VALUE_IS_REQUIRED)
+
+
+class ValidatedRadioGroup(ttk.Frame):
+    """
+        Un widget composito che raggruppa dei Radiobutton e ne valida la selezione.
+
+        Questa classe agisce come un contenitore (un ttk.Frame) per un insieme di
+        widget ttk.Radiobutton, garantendo che l'utente effettui una selezione.
+        Se l'utente lascia il gruppo senza aver selezionato un'opzione, viene
+        mostrato un messaggio di errore.
+    """
+    def __init__(self, *args, variable=None, error_var=None, values=None, button_args=None, **kwargs):
+        """
+                Inizializza il gruppo di Radiobutton.
+
+                Args:
+                    *args, **kwargs: Argomenti standard per il widget ttk.Frame.
+                    variable (tk.Variable, optional): La variabile Tkinter da associare
+                        al gruppo. Se non fornita, viene creata una nuova tk.StringVar.
+                    error_var (tk.StringVar, optional): La StringVar in cui scrivere
+                        eventuali messaggi di errore. Se non fornita, ne viene creata una.
+                    values (list, optional): Una lista di stringhe, ognuna delle quali
+                        rappresenta il valore e il testo di un Radiobutton.
+                    button_args (dict, optional): Un dizionario di argomenti da passare
+                        a ogni singolo Radiobutton creato (es. per lo stile).
+        """
+        super().__init__(*args, **kwargs)
+        # Inizializza le variabili, creandole se non vengono fornite
+        self.variable = variable or tk.StringVar()
+        self.error = error_var or tk.StringVar()
+        self.values = values or []
+        self.button_args = button_args or {}
+
+        # Crea e impagina un Radiobutton per ogni valore nella lista
+        for v in self.values:
+            button = ttk.Radiobutton(
+                self, value=v, text=v, variable=self.variable, **self.button_args
+            )
+            button.pack(
+                side=tk.LEFT, ipadx=10, ipady=2, expand=True, fill='x'
+            )
+
+        # Associa l'evento di perdita del focus alla funzione di validazione
+        self.bind('<FocusOut>', self.trigger_focusout_validation)
+
+    def trigger_focusout_validation(self, *_):
+        """
+                Esegue la validazione quando il widget perde il focus.
+
+                Questo metodo viene chiamato dall'evento bind. Pulisce l'errore
+                precedente e controlla se la variabile associata ha un valore.
+                Se la variabile è vuota (nessun pulsante selezionato), imposta
+                un messaggio di errore.
+        """
+        self.error.set('')
+        if not self.variable.get():
+            self.error.set(A_VALUE_IS_REQUIRED)
+
+
+"""
+    SCOPO DELLA CLASSE `LabelInput`:
+    ==============================
+    Questa classe è un "compound widget" (widget composto) avanzato, progettata
+    per standardizzare e semplificare drasticamente la creazione di form in Tkinter.
+    L'idea è di incapsulare un'etichetta (`ttk.Label`) e un campo di input
+    (come `ttk.Entry`, `ttk.Spinbox`, `ttk.Checkbutton`, ecc.) in un unico oggetto,
+    gestendoli come una sola unità logica e visiva.
+
+    Questo approccio offre vantaggi significativi:
+    - Riduce il codice ripetitivo: Invece di creare e posizionare una Label
+      e un widget di input separatamente per ogni campo, si crea una sola
+      istanza di `LabelInput`.
+    - Migliora la leggibilità e la manutenibilità: Il codice per la creazione
+      dell'interfaccia diventa più pulito, dichiarativo e facile da modificare.
+    - Aumenta la flessibilità: Grazie ai parametri `input_class` e
+      `input_args`, la classe è estremamente versatile e può generare
+      coppie label-input con quasi ogni tipo di widget `ttk`,
+      configurandoli in modo personalizzato.
+
+    COME FUNZIONA (ANALISI TECNICA):
+    ===========================================
+    - La classe eredita da `ttk.Frame`, agendo come un contenitore per
+      la Label e l'input.
+
+    - Il costruttore `__init__` è il cuore della classe e implementa una
+      logica sofisticata per adattarsi a diversi tipi di widget:
+        - `input_class`: Specifica quale widget di input creare (es. `ttk.Entry`).
+        - `input_args`: Un dizionario di opzioni da passare al costruttore
+          del widget di input (es. `{'values': ['A', 'B', 'C']}`).
+
+    - La classe gestisce diversi casi in modo intelligente:
+        1. Caso Generale (es. `ttk.Entry`, `ttk.Spinbox`, `ttk.Combobox`):
+           - Crea una `ttk.Label` standard.
+           - Crea il widget di input specificato, collegandolo alla `textvariable`.
+           - Posiziona la Label sopra e l'input sotto, usando `grid`.
+
+        2. Caso Speciale (`ttk.Checkbutton`, `ttk.Button`):
+           - Riconosce che questi widget hanno già una loro etichetta (`text`).
+           - Non crea una `ttk.Label` separata, ma passa il testo `label`
+             direttamente all'argomento `text` del widget.
+
+        3. Caso Speciale (`ttk.Radiobutton`):
+           - Questa è la gestione più complessa. La classe si aspetta di
+             trovare una lista di valori in `input_args['values']`.
+           - Crea un `Frame` interno e, per ogni valore nella lista, crea
+             un `ttk.Radiobutton` e lo impacchetta orizzontalmente (`side=tk.LEFT`).
+             Questo permette di creare gruppi di radio button con una sola riga
+             di codice.
+
+    - La riga `self.variable.label_widget = self` è una tecnica avanzata:
+      crea un riferimento incrociato che permette, partendo dalla variabile
+      di controllo, di risalire al widget `LabelInput` che la gestisce.
+      Questo può essere molto utile per la validazione degli errori (es.
+      per cambiare il colore della label se il dato non è valido).
+
+    - `def grid(...)`: La classe sovrascrive il metodo `grid` per impostare
+      un valore di default per l'opzione `sticky`. Questo assicura che,
+      per impostazione predefinita, ogni `LabelInput` si espanda per
+      occupare tutta la larghezza disponibile, mantenendo l'interfaccia
+      allineata e ordinata.
+"""
+
+
+class LabelInput(tk.Frame):
+    """A widget containing a label and input togheter"""
+
+    def __init__(
+            self, parent, label, var, input_class=ttk.Entry,
+            input_args=None, label_args=None, disable_var=None, **kwargs
+    ):
+        super().__init__(parent, **kwargs)
+        input_args = input_args or {}
+        label_args = label_args or {}
+        self.variable = var
+        self.variable.label_widget = self
+
+        if input_class in (ttk.Checkbutton, ttk.Button):
+            input_args["text"] = label
+        else:
+            self.label = ttk.Label(self, text=label, **label_args)
+            self.label.grid(row=0, column=0, sticky=(tk.W + tk.E))
+
+        # # Assegna la variabile al widget di input
+        if input_class == ttk.Radiobutton:
+            # I Radiobutton non usano 'textvariable', ma 'variable' passata a ogni bottone.
+            # La gestione è fatta nel ciclo qui sotto.
+            pass
+        elif input_class in (ttk.Checkbutton, ttk.Button, ValidatedRadioGroup):
+            input_args['variable'] = self.variable
+        else:
+            # Per Entry, Combobox, Spinbox, etc.
+            input_args["textvariable"] = self.variable
+
+        if input_class == ttk.Radiobutton:
+            self.input = tk.Frame(self)
+            # Configura le colonne del frame interno per dare spazio ai bottoni
+            values = input_args.pop('values', [])
+            for i, v in enumerate(values):
+                self.input.columnconfigure(i, weight=1)
+                # Passa la variabile esplicitamente a ogni Radiobutton
+                button = ttk.Radiobutton(self.input, value=v, text=v, variable=self.variable, **input_args)
+                # Usa grid() invece di pack()
+                button.grid(row=0, column=i, padx=10, sticky='ew')
+            # Posiziona il frame contenitore dei radio button
+            self.input.grid(row=1, column=0, sticky=(tk.W + tk.E))
+        else:
+            self.input = input_class(self, **input_args)
+            self.input.grid(row=1, column=0, sticky=(tk.W + tk.E))
+
+        # disable var, disabling a field
+        if disable_var:
+            self.disable_var = disable_var
+            self.disable_var.trace_add('write', self._check_disable)
+
+        # displaying errors
+        self.error = getattr(self.input, 'error', tk.StringVar())
+        ttk.Label(self, textvariable=self.error, **label_args).grid(
+            row=2, column=0, sticky=(tk.W + tk.E)
+        )
+
+    def grid(self, sticky=(tk.E + tk.W), **kwargs):
+        """Override grid to add default sticky values"""
+        super().grid(sticky=sticky, **kwargs)
+
+    def _check_disable(self, *_):
+        """Callback per abilitare/disabilitare dinamicamente il widget di input.
+
+                 Questo metodo viene eseguito automaticamente ogni volta che la variabile
+                 `self.disable_var` (se fornita durante l'inizializzazione) viene modificata.
+                 Il suo scopo è creare un'interazione dinamica nel form, dove lo stato
+                 di un widget (es. un Checkbutton) controlla lo stato di un altro.
+
+                 Args:
+                     *_: Argomenti posizionali passati dal `trace` di Tkinter, non usati qui.
+
+                 ANALISI TECNICA:
+                 1.  **Controllo di Sicurezza**: Verifica che `disable_var` esista prima
+                     di procedere, per evitare errori se il widget non è stato configurato
+                     per essere disabilitabile.
+                 2.  **Logica di Disabilitazione** (se `disable_var` è `True`):
+                     -   Imposta lo stato del widget di input (`self.input`) su `DISABLED`,
+                         rendendolo non modificabile e visivamente "grigio".
+                     -   Svuota la variabile dati del widget (`self.variable.set('')`)
+                         perché un campo disabilitato non dovrebbe contenere un valore.
+                     -   Svuota la variabile di errore (`self.error.set('')`) per
+                         nascondere eventuali messaggi di validazione precedenti.
+                 3.  **Logica di Abilitazione** (se `disable_var` è `False`):
+                     -   Riporta lo stato del widget di input a `NORMAL`, rendendolo
+                         nuovamente modificabile dall'utente.
+        """
+        if not hasattr(self, 'disable_var'):
+            return
+
+        if self.disable_var.get():
+            self.input.configure(state=tk.DISABLED)
+            self.variable.set('')
+            self.error.set('')
+        else:
+            self.input.configure(state=tk.NORMAL)
+
+
+"""
+    SCOPO DELLA CLASSE `BoundText`:
+    =============================
+    Questa classe estende il widget standard `tk.Text` per aggiungere una
+    funzionalità fondamentale che manca nativamente: il "two-way data binding"
+    (collegamento dati a due vie) tramite l'opzione `textvariable`.
+
+    In pratica, un'istanza di `BoundText` e una variabile di controllo di Tkinter
+    (come `tk.StringVar`) rimangono costantemente sincronizzate:
+    1.  Se la variabile viene modificata programmaticamente (es. `var.set(...)`),
+        il testo nel widget si aggiorna automaticamente.
+    2.  Se l'utente scrive o modifica il testo all'interno del widget,
+        la variabile collegata viene aggiornata di conseguenza.
+
+    COME FUNZIONA (ANALISI TECNICA):
+    ================================
+    Il two-way binding è implementato attraverso due meccanismi distinti:
+
+    1.  Binding "dalla Variabile al Widget":
+        - Nel costruttore `__init__`, viene impostato un "osservatore" (`trace`)
+          sulla variabile tramite `self._variable.trace_add('write', ...)`.
+        - Questo `trace` fa sì che, ogni volta che la variabile viene "scritta"
+          (modificata), venga eseguito il metodo `_set_content`.
+        - `_set_content` si occupa di cancellare il testo attuale del widget
+          e inserire il nuovo valore preso dalla variabile.
+
+    2.  Binding "dal Widget alla Variabile":
+        - Nel metodo `_set_content`, il widget viene collegato all'evento
+          virtuale `<<Modified>>` tramite `self.bind('<<Modified>>', ...)`.
+        - Questo evento viene generato da Tkinter ogni volta che il contenuto
+          del widget `Text` viene alterato (es. dall'utente che scrive).
+        - L'evento scatena l'esecuzione del metodo `_set_var`, che a sua volta:
+          a) Controlla se la modifica è reale con `self.edit_modified()`.
+          b) Legge il nuovo contenuto del widget con `self.get(...)`.
+          c) Aggiorna la variabile collegata con `self._variable.set(...)`.
+          d) Resetta il flag di modifica con `self.edit_modified(False)` per
+             essere pronti alla modifica successiva.
+
+    CRITICITÀ - RISCHIO DI RICORSIONE INFINITA:
+    ===========================================
+    L'implementazione attuale, sebbene intelligente, presenta un serio rischio
+    di ricorsione infinita che può bloccare l'applicazione.
+    Il ciclo è il seguente:
+    1. L'utente scrive -> `_set_var` viene chiamato.
+    2. `_set_var` aggiorna la variabile.
+    3. L'aggiornamento della variabile fa scattare il `trace` -> `_set_content` viene chiamato.
+    4. `_set_content` modifica il widget.
+    5. La modifica del widget fa scattare di nuovo l'evento `<<Modified>>`... e il ciclo ricomincia.
+"""
+
+
+class BoundText(tk.Text):
+    """Un widget Text con una variabile collegata (two-way binding)."""
+    def __init__(self, *args, textvariable=None, **kwargs):
+        super().__init__(*args, **kwargs)
+        self._variable = textvariable
+        if self._variable:
+            # Imposta il contenuto iniziale e lega gli eventi in modo sicuro
+            self.insert('1.0', self._variable.get())
+
+            # 1. Binding: dalla Variabile al Widget
+            self._variable.trace_add('write', self._from_var_to_widget)
+
+            # 2. Binding: dal Widget alla Variabile
+            self.bind('<<Modified>>', self._from_widget_to_var)
+
+    def _from_var_to_widget(self, *_):
+        """Aggiorna il widget quando la variabile cambia, evitando cicli."""
+        widget_content = self.get('1.0', 'end-1c')
+        var_content = self._variable.get()
+        if widget_content != var_content:
+            self.delete('1.0', tk.END)
+            self.insert('1.0', var_content)
+
+    def _from_widget_to_var(self, *_):
+        """Aggiorna la variabile quando l'utente scrive nel widget."""
+        if self.edit_modified():
+            content = self.get('1.0', 'end-1c')
+            self._variable.set(content)
+            self.edit_modified(False)
