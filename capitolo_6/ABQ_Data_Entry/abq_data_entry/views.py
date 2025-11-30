@@ -8,6 +8,46 @@ from .constants import FieldTypes as FT
 
 
 class DataRecordForm(ttk.Frame):
+
+    var_types = {
+        FT.string: tk.StringVar,
+        FT.string_list: tk.StringVar,
+        FT.short_string_list: tk.StringVar,
+        FT.iso_date_string: tk.StringVar,
+        FT.long_string: tk.StringVar,
+        FT.decimal: tk.DoubleVar,
+        FT.integer: tk.IntVar,
+        FT.boolean: tk.BooleanVar
+    }
+
+    def _add_frame(self, label: str, cols: int = 3) -> ttk.LabelFrame:
+        """Crea e configura un contenitore LabelFrame per raggruppare i widget.
+
+        Questo è un metodo "helper" (di supporto) privato, progettato per
+        ridurre la duplicazione del codice nella costruzione dell'interfaccia.
+        Il suo compito è creare un `ttk.LabelFrame`, che è un contenitore
+        con un bordo e un'etichetta, ideale per raggruppare sezioni
+        logiche del form (es. "Record Information", "Environment Data").
+
+        Args:
+            label (str): Il testo da visualizzare come titolo del LabelFrame.
+            cols (int, optional): Il numero di colonne che il layout a griglia
+                all'interno del frame deve avere. Default a 3.
+
+        Returns:
+            ttk.LabelFrame: Il widget LabelFrame appena creato e configurato.
+        """
+        frame = ttk.LabelFrame(self, text=label)
+        frame.grid(sticky=tk.W + tk.E)
+
+        # Questa è la parte fondamentale per un layout responsive:
+        # Configura le colonne all'interno del frame affinché si espandano
+        # in modo uniforme quando la finestra viene ridimensionata.
+        for i in range(cols):
+            frame.columnconfigure(i, weight=1)
+        return frame
+
+
     """Costruttore della classe DataRecordForm.
 
              Questo metodo viene eseguito alla creazione di un'istanza della classe
@@ -32,17 +72,6 @@ class DataRecordForm(ttk.Frame):
                  -   **Fondamenta per la GUI**: Questo dizionario è la base su cui
                      verrà costruita dinamicamente l'intera interfaccia grafica.
     """
-
-    var_types = {
-        FT.string: tk.StringVar,
-        FT.string_list: tk.StringVar,
-        FT.short_string_list: tk.StringVar,
-        FT.iso_date_string: tk.StringVar,
-        FT.long_string: tk.StringVar,
-        FT.decimal: tk.DoubleVar,
-        FT.integer: tk.IntVar,
-        FT.boolean: tk.BooleanVar
-    }
 
     def __init__(self, parent, model, *args, **kwargs):
         super().__init__(parent, *args, **kwargs)
@@ -81,12 +110,8 @@ class DataRecordForm(ttk.Frame):
         # Build the form
         self.columnconfigure(0, weight=1)
 
-        # ---------------------------------------------
-
         # Record Information
         r_info = self._add_frame("Record Information")
-
-        # ---------------------------------------------
 
         # Date
         w.LabelInput(
@@ -109,8 +134,6 @@ class DataRecordForm(ttk.Frame):
             var=self._vars["Technician"]
         ).grid(row=0, column=2)
 
-        # ---------------------------------------------
-
         # Lab
         w.LabelInput(
             r_info, "Lab",
@@ -132,18 +155,14 @@ class DataRecordForm(ttk.Frame):
             var=self._vars["Seed Sample"]
         ).grid(row=1, column=2)
 
-        # ---------------------------------------------
-
         # Environment Data
         e_info = self._add_frame("Environment Data")
-
-        # ---------------------------------------------
 
         # Humidity
         w.LabelInput(
             e_info, "Humidity (g/m)", input_class=w.ValidatedSpinbox,
             var=self._vars["Humidity"],
-            input_args={"from_" : 0.5, "to" : 52.0, "increment" : .01},
+            field_spec=fields['Humidity'],
             disable_var=self._vars['Equipment Fault']
         ).grid(row=0, column=0)
 
@@ -170,11 +189,8 @@ class DataRecordForm(ttk.Frame):
             var=self._vars["Equipment Fault"]
         ).grid(row=1, column=0, columnspan=3)
 
-        # ---------------------------------------------
-
+        # Plan Data Section
         p_info = self._add_frame("Plant Data")
-
-        # ---------------------------------------------
 
         # Plants
         w.LabelInput(
@@ -204,10 +220,8 @@ class DataRecordForm(ttk.Frame):
         w.LabelInput(
             p_info, "Min Height (cm)", input_class=w.ValidatedSpinbox,
             var=self._vars["Min Height"],
+            field_spec=fields['Min Height'],
             input_args={
-                "from_": 0,
-                "to": 1000,
-                "increment": .01,
                 "max_var": max_height_var,
                 "focus_update_var": min_height_var
             }
@@ -215,12 +229,10 @@ class DataRecordForm(ttk.Frame):
 
         # Max Height
         w.LabelInput(
-            p_info, "Max Height (cm)", input_class=w.ValidatedSpinbox,
+            p_info, "Max Height (cm)",
             var=self._vars["Max Height"],
+            field_spec=fields['Max Height'],
             input_args={
-                "from_": 0,
-                "to": 1000,
-                "increment": .01,
                 "min_var": min_height_var,
                 "focus_update_var": max_height_var
             }
@@ -228,64 +240,35 @@ class DataRecordForm(ttk.Frame):
 
         # Median Height
         w.LabelInput(
-            p_info, "Med Height (cm)", input_class=w.ValidatedSpinbox,
+            p_info, "Med Height (cm)",
             var=self._vars["Med Height"],
+            field_spec=fields['Med Height'],
             input_args={
-                "from_": 0,
-                "to": 1000,
-                "increment": .01,
                 "min_var": min_height_var,
                 "max_var": max_height_var
             }
         ).grid(row=1, column=2)
 
-        # ---------------------------------------------
-
         # Notes Section
         w.LabelInput(
-            self, "Notes", input_class=w.BoundText,
+            self, "Notes",
+            field_spec=fields['Notes'],
             var=self._vars["Notes"],
             input_args={"width": 75, "height": 10}
         ).grid(sticky=tk.W, row=3, column=0)
 
-        # ---------------------------------------------
-
-        # final button section
+        # final buttons section
         buttons = tk.Frame(self)
         buttons.grid(sticky=tk.W + tk.E, row=4)
-        self.savebutton = ttk.Button(buttons, text="Save", command=self.master._on_save)
+        self.savebutton = ttk.Button(
+            buttons, text="Save", command=self._on_save)
         self.savebutton.pack(side=tk.RIGHT)
-        self.resetbutton = ttk.Button(buttons, text="Reset", command=self.reset)
+        self.resetbutton = ttk.Button(
+            buttons, text="Reset", command=self.reset)
         self.resetbutton.pack(side=tk.RIGHT)
 
-        # ---------------------------------------------
-
-    def _add_frame(self, label: str, cols: int = 3) -> ttk.LabelFrame:
-        """Crea e configura un contenitore LabelFrame per raggruppare i widget.
-
-        Questo è un metodo "helper" (di supporto) privato, progettato per
-        ridurre la duplicazione del codice nella costruzione dell'interfaccia.
-        Il suo compito è creare un `ttk.LabelFrame`, che è un contenitore
-        con un bordo e un'etichetta, ideale per raggruppare sezioni
-        logiche del form (es. "Record Information", "Environment Data").
-
-        Args:
-            label (str): Il testo da visualizzare come titolo del LabelFrame.
-            cols (int, optional): Il numero di colonne che il layout a griglia
-                all'interno del frame deve avere. Default a 3.
-
-        Returns:
-            ttk.LabelFrame: Il widget LabelFrame appena creato e configurato.
-        """
-        frame = ttk.LabelFrame(self, text=label)
-        frame.grid(sticky=tk.W + tk.E)
-
-        # Questa è la parte fondamentale per un layout responsive:
-        # Configura le colonne all'interno del frame affinché si espandano
-        # in modo uniforme quando la finestra viene ridimensionata.
-        for i in range(cols):
-            frame.columnconfigure(i, weight=1)
-        return frame
+    def _on_save(self):
+        self.event_generate('<<SaveRecord>>')
 
     def reset(self):
         """Resetta tutti i campi del form al loro stato iniziale.
@@ -371,7 +354,8 @@ class DataRecordForm(ttk.Frame):
         return data
 
     def get_errors(self):
-        """Forza una validazione completa su tutti i campi e restituisce gli errori.
+        """
+        Forza una validazione completa su tutti i campi e restituisce gli errori.
 
          Questo metodo è cruciale per la validazione pre-salvataggio. Scorre
          tutti i widget del form, forza l'esecuzione della loro validazione
@@ -384,18 +368,18 @@ class DataRecordForm(ttk.Frame):
                    Restituisce un dizionario vuoto se non ci sono errori.
 
          ANALISI TECNICA:
-         1.  Iterazione: Scorre il dizionario `self._vars` per analizzare
+         Iterazione: Scorre il dizionario `self._vars` per analizzare
              ogni campo del form.
-         2.  Accesso ai Widget: Usa il riferimento `var.label_widget` per
+         Accesso ai Widget: Usa il riferimento `var.label_widget` per
              risalire dalla variabile di controllo al widget `LabelInput` e
              da lì al widget di input vero e proprio (`inp`) e alla sua
              variabile di errore (`error`).
-         3.  Validazione Forzata: La parte più importante. `hasattr(...)`
+         Validazione Forzata: La parte più importante. `hasattr(...)`
              controlla se il widget di input ha un metodo `trigger_focusout_validation`.
              Se sì, lo chiama. Questo simula un evento "focus-out", forzando
              la validazione di regole come "campo obbligatorio" anche se
              l'utente è ancora posizionato su quel campo.
-         4.  Raccolta degli Errori: Dopo la validazione forzata, controlla
+         Raccolta degli Errori: Dopo la validazione forzata, controlla
              se la variabile di errore del widget contiene un messaggio. In caso
              affermativo, lo aggiunge al dizionario `errors`.
          """
