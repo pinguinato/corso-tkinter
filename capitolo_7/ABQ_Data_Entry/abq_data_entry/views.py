@@ -350,4 +350,17 @@ class LoginDialog(Dialog):
 
         return user_inp.input
 
+    """ Questa funzione fa l'overwrite dei bottoni Login e Cancel """
+    def buttonbox(self):
+        box = ttk.Frame(self)
+        ttk.Button(
+            box, text='Login', command=self.ok, default=tk.ACTIVE).grid(padx=5, pady=5)
+        ttk.Button(
+            box, text='Cancel', command=self.cancel).grid(row=1, column=1, padx=5, pady=5)
+        self.bind('<Return>', self.ok)
+        self.bind('<Escape>', self.cancel)
+        box.pack()
 
+    """ Funzione che contiene la tupla dei dati di accesso """
+    def apply(self):
+        self.result = (self._user.get(), self._pw.get())
