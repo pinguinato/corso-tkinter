@@ -2,7 +2,7 @@ import tkinter as tk
 from tkinter import ttk
 from . import views as v
 from . import models as m
-from tkinter import messagebox
+from tkinter import messagebox # import che serve per le finistre di dialogo
 
 
 class Application(tk.Tk):
@@ -82,6 +82,8 @@ class Application(tk.Tk):
                 .format(', '.join(errors.keys()))
             )
 
+            # 1) 08/02/2026 Aggiunta di una finestra di dialogo per mostrare gli errori
+            # per i campi che non sono ancora stati compilati
             message = "Cannot save record"
             detail = (
                 "The following fields have errors: "
@@ -91,6 +93,7 @@ class Application(tk.Tk):
                 message=message,
                 detail=detail
             )
+
             return False
 
         # 2. e 3. Recupero dati e comando al Modello
