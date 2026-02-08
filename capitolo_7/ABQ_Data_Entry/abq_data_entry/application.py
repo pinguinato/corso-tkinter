@@ -25,7 +25,15 @@ class Application(tk.Tk):
         Inizializza l'applicazione creando il Modello, la Vista e configurando
         la finestra principale.
         """
+
         super().__init__(*args, **kwargs)
+
+        # 08/02/2026 questo codice permette il caricamento della form di Login prima di tutto
+        self.withdraw()
+        if not self._show_login():
+            self.destroy()
+            return
+        self.deiconify()
 
         # 1. Crea l'istanza del Modello che gestirà la logica dei dati.
         self.model = m.CSVModel()
@@ -118,3 +126,27 @@ class Application(tk.Tk):
         )
         if filename:
             self.model = m.CSVModel(filename=filename)
+
+
+    """
+        Metodo statico che serve soltanto per testare la finestra di Login
+    """
+    @staticmethod
+    def _simple_login(username, password):
+        return username == 'abq' and password == 'Flowers'
+
+
+    """
+        Metodo che serve a mostrare la form di Login
+    """
+    def _show_login(self):
+        error = ''
+        title = 'Login to ABQ Data Entry'
+        while True:
+            login = v.LoginDialog(self, title, error)
+            if not login.result:
+                return False
+            username, password = login.result
+            if self._simple_login(username, password):
+                return True
+            error = 'Login Failed'
