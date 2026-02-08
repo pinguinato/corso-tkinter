@@ -348,4 +348,6 @@ class LoginDialog(Dialog):
         user_inp.grid()
         w.LabelInput(frame, 'Password:', input_class=w.RequiredEntry, var=self._pw).grid()
 
-        return user_inp
+        return user_inp.input
+
+
