@@ -91,7 +91,7 @@ class CSVModel:
         "Notes": {'req': False, 'type': FT.long_string}
     }
 
-    def __init__(self):
+    def __init__(self, filename=None):
         """Costruttore della classe CSVModel.
 
                  Questo metodo inizializza il modello di dati per il salvataggio su file CSV.
@@ -120,8 +120,10 @@ class CSVModel:
                      bloccando la creazione dell'oggetto `CSVModel` e segnalando
                      chiaramente il problema all'avvio dell'applicazione.
         """
-        datestring = datetime.today().strftime("%Y-%m-%d")
-        filename = "abq_data_record_{}.csv".format(datestring)
+        # se il nostro filename è vuoto usiamo il nome generato di default qui sotto
+        if not filename:
+            datestring = datetime.today().strftime("%Y-%m-%d")
+            filename = "abq_data_record_{}.csv".format(datestring)
         self.file = Path(filename)
 
         # Check for append permissions:

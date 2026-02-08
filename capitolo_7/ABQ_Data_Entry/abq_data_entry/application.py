@@ -3,6 +3,7 @@ from tkinter import ttk
 from . import views as v
 from . import models as m
 from tkinter import messagebox # import che serve per le finistre di dialogo
+from tkinter import filedialog # import che serve per le finistre di dialogo per i files
 
 
 class Application(tk.Tk):
@@ -106,3 +107,14 @@ class Application(tk.Tk):
             f"{self._records_saved} records saved this session"
         )
         self.recordform.reset()
+    
+            
+    def _on_file_select(self, *_):
+        """ Handle the file->select action"""
+        filename = filedialog.asksaveasfilename(
+            title='Select the target file for saving records',
+            defaultextension='.csv',
+            filetypes=[('CSV', '*.csv', '*.CSV')],
+        )
+        if filename:
+            self.model = m.CSVModel(filename=filename)
