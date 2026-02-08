@@ -343,8 +343,9 @@ class LoginDialog(Dialog):
 
         if self._error.get():
             ttk.Label(frame, textvariable=self._error).grid(row=1)
-            user_inp = w.LabelInput(frame, 'User name:', input_class=w.RequiredEntry, var=self._user)
-            user_inp.grid()
-            w.LabelInput(frame, 'Password:', input_class=w.RequiredEntry, var=self._pw).grid()
 
-            return user_inp
+        user_inp = w.LabelInput(frame, 'User name:', input_class=w.RequiredEntry, var=self._user)
+        user_inp.grid()
+        w.LabelInput(frame, 'Password:', input_class=w.RequiredEntry, var=self._pw).grid()
+
+        return user_inp
